@@ -18,8 +18,7 @@ def show_report(view_name):
             df = pd.DataFrame(result.data)
             st.dataframe(
                 df,
-                use_container_width=False,
-                width=800,
+                use_container_width=True,
                 height=600
             )
         else:
