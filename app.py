@@ -19,8 +19,8 @@ def show_report(view_name):
             st.dataframe(
                 df,
                 use_container_width=False,
-                width=1600,
-                height=10000
+                width=800,
+                height=600
             )
         else:
             st.info("No data found.")
