@@ -5,9 +5,9 @@ import pandas as pd
 st.set_page_config(page_title="Accounting System", layout="wide")
 
 st.markdown("""
-    <h1 style='color:#2c3e50;'>Accounting System — MSc Demo</h1>
-    <p>All reports load live from Supabase PostgreSQL database.</p>
-    <hr>
+<h1 style='color:#2c3e50;'>Accounting System — MSc Demo</h1>
+<p>All reports load live from Supabase PostgreSQL database.</p>
+<hr>
 """, unsafe_allow_html=True)
 
 # Helper function
