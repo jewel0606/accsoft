@@ -91,7 +91,7 @@ pandas
 ```python
 from supabase import create_client
 
-SUPABASE_URL = "https://phuvxkazjkqetquaouvf.supabase.co"
+SUPABASE_URL = "https://phu"
 SUPABASE_KEY = "your-anon-key-here"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
