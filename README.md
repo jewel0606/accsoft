@@ -6,8 +6,12 @@ This is a **double-entry accounting system** built entirely on SQL,
 
 The core idea is simple:
 - All accounting data lives in **Supabase (PostgreSQL)** — a free cloud database
-- All accounting logic — journal entries, ledger, trial balance, 
-  income statement, balance sheet — is written purely in **SQL views and queries**
+- All financial statements —is written purely in **SQL views and queries**
+  1. journal entries
+  2. ledger
+  3. trial balance
+  4. income statement
+  5. balance sheet
 - A simple **Python frontend (Streamlit)** connects to the database 
   and displays the reports as live tables in a browser
 - GitHub stores the Python code and Streamlit Cloud hosts it free online
