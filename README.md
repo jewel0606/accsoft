@@ -1,7 +1,17 @@
-# accsoft — MSc Accounting Software Demo
+# accsoft — SQL-Based Accounting System (MSc Project)
 
-A SQL-backed double-entry accounting system built on Supabase PostgreSQL, 
-deployed as a live web app via Streamlit Cloud.
+## What This Project Is
+
+This is a **double-entry accounting system** built entirely on SQL, 
+developed as a final-year MSc Computer Science project at Comilla University.
+
+The core idea is simple:
+- All accounting data lives in **Supabase (PostgreSQL)** — a free cloud database
+- All accounting logic — journal entries, ledger, trial balance, 
+  income statement, balance sheet — is written purely in **SQL views and queries**
+- A simple **Python frontend (Streamlit)** connects to the database 
+  and displays the reports as live tables in a browser
+- GitHub stores the Python code and Streamlit Cloud hosts it free online
 
 **Live App:** https://accsoft.streamlit.app  
 **GitHub:** https://github.com/jewel0606/accsoft  
@@ -16,9 +26,88 @@ deployed as a live web app via Streamlit Cloud.
 | Database | Supabase (PostgreSQL) | Tables, views, all accounting logic |
 | Frontend | Streamlit (Python) | Display reports in browser |
 | Code Storage | GitHub | Stores Python files |
-| Hosting | Streamlit Cloud | Runs app free online |
+| Hosting | Streamlit Cloud | Runs app free online
 
 ---
+
+## What You Can See in the Live App
+
+Open the live app: **https://accsoft.streamlit.app**
+
+You will see these reports, all loading live from the database:
+
+| Tab | What It Shows |
+|---|---|
+| Chart of Accounts | All accounts (asset, liability, equity, income, expense) |
+| Trial Balance | Total debits, credits, and final balance per account |
+| Income Statement | All income and expenses with Net Income total |
+| Balance Sheet | Assets, liabilities, equity with Total Balance row |
+| Journal Register | Every single journal line posted to the system |
+
+Each report is generated **live at the moment you click the button** — 
+not stored as a static file. The data comes directly from Supabase.
+
+---
+
+## How It Works — The Full Picture
+
+You enter data → Supabase (PostgreSQL database)
+↓
+SQL views calculate reports
+↓
+Python (Streamlit) fetches the result
+↓
+Browser shows the live report table
+
+
+**Data entry** happens directly in Supabase — using the Supabase table 
+editor or SQL insert statements. There is no entry form in the frontend 
+by design — the frontend is read-only, showing reports only.
+
+**Streamlit** does not do any accounting calculation. It only:
+1. Connects to Supabase using a URL and API key
+2. Fetches the result of a SQL view when you click a button
+3. Displays it as a table on screen
+
+**All the accounting intelligence** — double-entry validation, 
+multi-level aggregation, balance sheet equation, net income calculation — 
+is written in SQL inside Supabase.
+
+**GitHub** stores only three Python files (db.py, app.py, requirements.txt). 
+Streamlit Cloud reads these files from GitHub and runs them as a live website.
+
+---
+
+## Why This Architecture
+
+| Reason | Explanation |
+|---|---|
+| SQL-heavy | The developer's strength is SQL — so all logic stays in SQL |
+| Free | Supabase free tier + Streamlit Cloud free tier + GitHub free = zero cost |
+| Online | Accessible from any browser, no installation needed |
+| Simple frontend | Python (Streamlit) chosen because it needs almost no HTML or JS |
+| Academic demo | Shows real double-entry accounting logic, not just a UI mockup |
+
+---
+
+## What "Double-Entry" Means in This System
+
+Every transaction in the `jnl` table has two lines — one debit and one credit.
+The same `transaction_id` links them together.
+
+Example — paying rent:
+Dr  Rent Expense     1000   (debit increases expense)
+Cr  Cash             1000   (credit decreases asset)
+
+The SQL views then aggregate all these lines to produce:
+- Trial Balance (are debits = credits across all accounts?)
+- Income Statement (income minus expenses = net profit?)
+- Balance Sheet (assets = liabilities + equity?)
+- Reconciliation check (does asset - liability - equity - income + expense = 0?)
+
+If the reconciliation shows 0, the books are perfectly balanced.
+
+
 
 ## Level 1: Set Up All Platforms
 
