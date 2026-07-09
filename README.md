@@ -1,9 +1,8 @@
-# accsoft — SQL-Based Accounting System (MSc Project)
+# accsoft — SQL-Based Accounting System
 
 ## What This Project Is
 
 This is a **double-entry accounting system** built entirely on SQL, 
-developed as a final-year MSc Computer Science project at Comilla University.
 
 The core idea is simple:
 - All accounting data lives in **Supabase (PostgreSQL)** — a free cloud database
