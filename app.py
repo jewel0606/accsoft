@@ -19,7 +19,7 @@ def show_report(view_name):
             st.dataframe(
                 df,
                 use_container_width=True,
-                height=6000
+                height=2000
             )
         else:
             st.info("No data found.")
