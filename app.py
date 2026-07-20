@@ -2,7 +2,7 @@ import streamlit as st
 from db import supabase
 import pandas as pd
 
-st.set_page_config(page_title="Accounting System", layout="height")
+st.set_page_config(page_title="Accounting System", layout="wide")
 
 st.markdown("""
 <h1 style='color:#2c3e50;'>Accounting System </h1>
