@@ -1,83 +1,155 @@
-# accsoft — SQL-Based Accounting System
+# accsoft — SQL-Based Accounting System (MSc Project)
 
 ## What This Project Is
 
-This is a **double-entry accounting system** built entirely on SQL, 
+**accsoft** is a double-entry accounting system built primarily with SQL and developed as an MSc Computer Science project at Comilla University.
 
-The core idea is simple:
-- All accounting data lives in **Supabase (PostgreSQL)** — a free cloud database
-- All financial statements —is written purely in **SQL views and queries**
-  1. journal entries
-  2. ledger
-  3. trial balance
-  4. income statement
-  5. balance sheet
-- A simple **Python frontend (Streamlit)** connects to the database 
-  and displays the reports as live tables in a browser
-- GitHub stores the Python code and Streamlit Cloud hosts it free online
+The system uses:
+
+- **Supabase PostgreSQL** for accounting data, tables, views, and report calculations
+- **SQL** for account hierarchy, debit and credit aggregation, financial statements, and reconciliation
+- **Python and Streamlit** for the read-only web interface
+- **GitHub** for source-code storage
+- **Streamlit Community Cloud** for online hosting
+
+The frontend does not calculate accounting results. It reads live report views from Supabase and displays them as browser-based tables.
 
 **Live App:** https://accsoft.streamlit.app  
-**GitHub:** https://github.com/jewel0606/accsoft  
-**Database:** Supabase (accsoft project)
+**GitHub Repository:** https://github.com/jewel0606/accsoft  
+**Database:** Supabase PostgreSQL — `accsoft` project
+
+---
+
+## Project Features
+
+- Double-entry journal structure
+- Recursive multi-level chart-of-accounts hierarchy
+- Direct account balances
+- Rolled-up parent account balances
+- Account Summary
+- Trial Balance
+- Income Statement
+- Balance Sheet
+- Financial Reconciliation
+- Full Financial Statement
+- Chart of Accounts report
+- Journal Register
+- Live report updates from Supabase
+- Read-only Streamlit frontend
 
 ---
 
 ## Project Stack
 
-| Layer | Tool | Purpose |
+| Layer | Technology | Purpose |
 |---|---|---|
-| Database | Supabase (PostgreSQL) | Tables, views, all accounting logic |
-| Frontend | Streamlit (Python) | Display reports in browser |
-| Code Storage | GitHub | Stores Python files |
-| Hosting | Streamlit Cloud | Runs app free online
+| Database | Supabase PostgreSQL | Stores accounting tables, transactions, and views |
+| Accounting Logic | SQL | Builds hierarchy, calculates balances, and generates reports |
+| Frontend | Streamlit | Displays live reports in the browser |
+| Data Handling | pandas | Converts Supabase results into DataFrames |
+| Code Storage | GitHub | Stores project files and documentation |
+| Hosting | Streamlit Community Cloud | Runs the application online |
 
 ---
 
-## What You Can See in the Live App
+## Live Application Reports
 
-Open the live app: **https://accsoft.streamlit.app**
+Open the application:
 
-You will see these reports, all loading live from the database:
+**https://accsoft.streamlit.app**
 
-| Tab | What It Shows |
-|---|---|
-| Chart of Accounts | All accounts (asset, liability, equity, income, expense) |
-| Trial Balance | Total debits, credits, and final balance per account |
-| Income Statement | All income and expenses with Net Income total |
-| Balance Sheet | Assets, liabilities, equity with Total Balance row |
-| Journal Register | Every single journal line posted to the system |
+The application contains the following report tabs:
 
-Each report is generated **live at the moment you click the button** — 
-not stored as a static file. The data comes directly from Supabase.
+| Tab | Supabase View | Description |
+|---|---|---|
+| Account Summary | `view_account_summary` | Direct and rolled-up balances for each account |
+| Balance Sheet | `view_balance_sheet` | Assets, liabilities, equity, and balance-sheet check |
+| Trial Balance | `view_trial_balance` | Debit, credit, and final balance by account |
+| Reconciliation | `view_reconciliation` | Income Statement, Balance Sheet, and accounting-equation checks |
+| Income Statement | `view_income_statement` | Income, expenses, and Net Income |
+| Full Financial Statement | `view_full_financial_statement` | All account types and hierarchy levels |
+| Chart of Accounts | `view_chart_of_accounts` | Complete account structure |
+| Journal Register | `view_journal_register` | Detailed journal transaction lines |
+
+Each report is generated from the latest database data whenever Streamlit queries the related Supabase view.
 
 ---
 
-## How It Works — The Full Picture
+## How the System Works
 
-You enter data → Supabase (PostgreSQL database)
-↓
-SQL views calculate reports
-↓
-Python (Streamlit) fetches the result
-↓
-Browser shows the live report table
+```text
+Accounting data is entered
+            ↓
+Supabase PostgreSQL tables
+            ↓
+Recursive SQL hierarchy and calculations
+            ↓
+Supabase report views
+            ↓
+Python Supabase client
+            ↓
+Streamlit report tabs
+            ↓
+Browser displays live reports
+```
 
+### Data Entry
 
-**Data entry** happens directly in Supabase — using the Supabase table 
-editor or SQL insert statements. There is no entry form in the frontend 
-by design — the frontend is read-only, showing reports only.
+Accounting data is entered directly into Supabase using:
 
-**Streamlit** does not do any accounting calculation. It only:
-1. Connects to Supabase using a URL and API key
-2. Fetches the result of a SQL view when you click a button
-3. Displays it as a table on screen
+- Supabase Table Editor
+- SQL `INSERT` statements
+- Imported data
+- Future data-entry forms
 
-**All the accounting intelligence** — double-entry validation, 
-multi-level aggregation, balance sheet equation, net income calculation — 
-is written in SQL inside Supabase.
+The current Streamlit application is read-only and is designed mainly for report presentation.
 
-**GitHub** stores only three Python files (db.py, app.py, requirements.txt). 
-Streamlit Cloud reads these files from GitHub and runs them as a live website.
+### Streamlit Responsibilities
+
+Streamlit only:
+
+1. Connects to Supabase
+2. Queries a selected view
+3. Converts returned rows into a pandas DataFrame
+4. Displays the DataFrame in the browser
+
+### Supabase Responsibilities
+
+Supabase PostgreSQL performs:
+
+- Debit and credit aggregation
+- Recursive account-hierarchy construction
+- Direct account-balance calculation
+- Parent and descendant balance roll-up
+- Trial Balance generation
+- Income Statement calculation
+- Net Income calculation
+- Balance Sheet generation
+- Balance Sheet check
+- Financial reconciliation
+
+---
+
+## Double-Entry Accounting
+
+Each accounting transaction should contain at least one debit line and one credit line.
+
+The same `transaction_id` links all journal lines belonging to the same transaction.
+
+Example — rent payment:
+
+```text
+Dr Rent Expense       1,000
+Cr Cash               1,000
+```
+
+The complete reconciliation equation used by the project is:
+
+```text
+Assets - Liabilities - Equity - Income + Expense = 0
+```
+
+A result of zero confirms that the accounting equation is balanced.
 
 ---
 
@@ -85,111 +157,275 @@ Streamlit Cloud reads these files from GitHub and runs them as a live website.
 
 | Reason | Explanation |
 |---|---|
-| SQL-heavy | The developer's strength is SQL — so all logic stays in SQL |
-| Free | Supabase free tier + Streamlit Cloud free tier + GitHub free = zero cost |
-| Online | Accessible from any browser, no installation needed |
-| Simple frontend | Python (Streamlit) chosen because it needs almost no HTML or JS |
-| Academic demo | Shows real double-entry accounting logic, not just a UI mockup |
+| SQL-focused | Accounting calculations remain inside PostgreSQL |
+| Dynamic | Reports reflect the latest journal data |
+| Low cost | Supabase, GitHub, and Streamlit offer free tiers |
+| Online | Reports are available through a browser |
+| Simple frontend | Streamlit displays SQL results with limited Python code |
+| Multi-level hierarchy | Recursive SQL supports flexible account depth |
+| Academic value | Demonstrates accounting, SQL, databases, Python, and cloud deployment |
+| Clear separation | SQL calculates reports while Streamlit presents them |
 
 ---
 
-## What "Double-Entry" Means in This System
+# Level 1 — Platform Setup
 
-Every transaction in the `jnl` table has two lines — one debit and one credit.
-The same `transaction_id` links them together.
+## Step 1: Create the Supabase Project
 
-Example — paying rent:
-Dr  Rent Expense     1000   (debit increases expense)
-Cr  Cash             1000   (credit decreases asset)
-
-The SQL views then aggregate all these lines to produce:
-- Trial Balance (are debits = credits across all accounts?)
-- Income Statement (income minus expenses = net profit?)
-- Balance Sheet (assets = liabilities + equity?)
-- Reconciliation check (does asset - liability - equity - income + expense = 0?)
-
-If the reconciliation shows 0, the books are perfectly balanced.
-
-
-
-## Level 1: Set Up All Platforms
-
-### Step 0: Create Supabase Account
-
-1. Go to supabase.com → Sign up → free account
-2. Create project:
-   - Name: accsoft
-   - Password: save this somewhere safe
-   - Region: Southeast Asia (nearest to Bangladesh)
-   - Plan: Free
-   - Click Create → wait 2 minutes
-3. Create tables in SQL Editor → New Query → Run in this exact order:
-```
-   currency → chart_of_accounts → contact → department →
-   location → item → budget → user → jnl
-```
-4. Insert minimum seed data:
-```sql
-   INSERT INTO public.currency (currency_id) VALUES ('USD');
-```
-5. Create views (SQL Editor → New Query → paste view code → Run):
-   - view_chart_of_accounts
-   - view_trial_balance
-   - view_income_statement
-   - view_balance_sheet
-   - view_recon
-   - view_journal_register
-   - view_cash_flow (requires account_pattern data in chart_of_accounts)
-
-6. Set security on core tables only (not views):
-```sql
-   ALTER TABLE public.jnl ENABLE ROW LEVEL SECURITY;
-   ALTER TABLE public.chart_of_accounts ENABLE ROW LEVEL SECURITY;
-   CREATE POLICY "anon_read_only" ON public.jnl FOR SELECT USING (true);
-   CREATE POLICY "anon_read_only" ON public.chart_of_accounts FOR SELECT USING (true);
-```
-   Note: Views do NOT have RLS. Only tables do. Never run ALTER TABLE on a view.
-
-7. Get credentials — Settings → API:
-   - SUPABASE_URL = Project URL
-   - SUPABASE_KEY = anon public key (never use service_role key)
-
-8. Test before moving on:
-```sql
-   SELECT * FROM view_trial_balance LIMIT 5;
-```
-   If no error → Supabase is ready.
+1. Go to Supabase and create a free account.
+2. Create a project named `accsoft`.
+3. Select the nearest available region.
+4. Save the database password securely.
+5. Wait for the project to finish provisioning.
 
 ---
 
-### Step 1: Create GitHub Account
-Go to github.com → Sign up → free account
+## Step 2: Create Database Tables
 
-### Step 2: Create Repository
-- Click + → New repository
-- Name: accsoft
-- Tick: Add a README file
-- Visibility: Public
-- Click Create repository
+Open:
 
-### Step 3: Create requirements.txt
+```text
+Supabase Dashboard
+→ SQL Editor
+→ New Query
 ```
+
+Create the tables in this order:
+
+```text
+1. currency
+2. chart_of_accounts
+3. contact
+4. department
+5. location
+6. item
+7. budget
+8. user
+9. jnl
+```
+
+The `jnl` table must be created last because it depends on supporting tables through foreign keys.
+
+---
+
+## Step 3: Insert Minimum Currency Data
+
+```sql
+INSERT INTO public.currency (currency_id)
+VALUES ('USD');
+```
+
+---
+
+## Step 4: Create Supabase Views
+
+Create these views:
+
+```text
+view_account_summary
+view_balance_sheet
+view_trial_balance
+view_reconciliation
+view_income_statement
+view_full_financial_statement
+view_chart_of_accounts
+view_journal_register
+```
+
+Recommended creation order:
+
+```text
+1. view_account_summary
+2. view_balance_sheet
+3. view_trial_balance
+4. view_reconciliation
+5. view_income_statement
+6. view_full_financial_statement
+7. view_chart_of_accounts
+8. view_journal_register
+```
+
+The main report views depend on:
+
+```text
+jnl
++
+chart_of_accounts
+```
+
+---
+
+## Step 5: Configure Row Level Security
+
+Row Level Security applies to tables, not views.
+
+Enable RLS on the underlying tables:
+
+```sql
+ALTER TABLE public.jnl
+ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE public.chart_of_accounts
+ENABLE ROW LEVEL SECURITY;
+```
+
+Create read policies:
+
+```sql
+DROP POLICY IF EXISTS "anon_read_only"
+ON public.jnl;
+
+CREATE POLICY "anon_read_only"
+ON public.jnl
+FOR SELECT
+TO anon, authenticated
+USING (true);
+```
+
+```sql
+DROP POLICY IF EXISTS "anon_read_only"
+ON public.chart_of_accounts;
+
+CREATE POLICY "anon_read_only"
+ON public.chart_of_accounts
+FOR SELECT
+TO anon, authenticated
+USING (true);
+```
+
+Do not run `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` against a view.
+
+---
+
+## Step 6: Configure View Security
+
+Use security-invoker views so the views respect the RLS policies of the underlying tables.
+
+```sql
+ALTER VIEW public.view_account_summary
+SET (security_invoker = true);
+
+ALTER VIEW public.view_balance_sheet
+SET (security_invoker = true);
+
+ALTER VIEW public.view_trial_balance
+SET (security_invoker = true);
+
+ALTER VIEW public.view_reconciliation
+SET (security_invoker = true);
+
+ALTER VIEW public.view_income_statement
+SET (security_invoker = true);
+
+ALTER VIEW public.view_full_financial_statement
+SET (security_invoker = true);
+
+ALTER VIEW public.view_chart_of_accounts
+SET (security_invoker = true);
+
+ALTER VIEW public.view_journal_register
+SET (security_invoker = true);
+```
+
+Grant read access:
+
+```sql
+GRANT SELECT ON
+    public.view_account_summary,
+    public.view_balance_sheet,
+    public.view_trial_balance,
+    public.view_reconciliation,
+    public.view_income_statement,
+    public.view_full_financial_statement,
+    public.view_chart_of_accounts,
+    public.view_journal_register
+TO anon, authenticated;
+```
+
+---
+
+## Step 7: Test the Views
+
+```sql
+SELECT *
+FROM public.view_account_summary
+LIMIT 5;
+```
+
+```sql
+SELECT *
+FROM public.view_trial_balance
+LIMIT 5;
+```
+
+```sql
+SELECT *
+FROM public.view_income_statement
+LIMIT 5;
+```
+
+```sql
+SELECT *
+FROM public.view_balance_sheet
+LIMIT 5;
+```
+
+If these queries run successfully, the main Supabase reports are ready.
+
+---
+
+## Step 8: Create the GitHub Repository
+
+1. Create a GitHub account.
+2. Create a new public repository.
+3. Name the repository `accsoft`.
+4. Add a README file.
+5. Commit the project files.
+
+Recommended repository structure:
+
+```text
+accsoft/
+├── README.md
+├── requirements.txt
+├── db.py
+├── app.py
+└── database.sql
+```
+
+---
+
+## Step 9: Create requirements.txt
+
+```text
 streamlit
 supabase
 pandas
 ```
 
-### Step 4: Create db.py
+---
+
+## Step 10: Create db.py
+
 ```python
+import streamlit as st
 from supabase import create_client
 
-SUPABASE_URL = "https://phu"
-SUPABASE_KEY = "your-anon-key-here"
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+)
 ```
 
-### Step 5: Create app.py
+Store Supabase credentials in Streamlit Secrets. Do not commit private credentials to a public repository.
+
+---
+
+## Step 11: Create app.py
+
 ```python
 import pandas as pd
 import streamlit as st
@@ -204,8 +440,12 @@ st.set_page_config(
 
 st.markdown(
     """
-    <h1 style="color:#2c3e50;">accsoft — SQL-Based Accounting System</h1>
-    <p>All reports load live from Supabase PostgreSQL views.</p>
+    <h1 style="color:#2c3e50;">
+        accsoft — SQL-Based Accounting System
+    </h1>
+    <p>
+        All reports load live from Supabase PostgreSQL views.
+    </p>
     <hr>
     """,
     unsafe_allow_html=True,
@@ -214,12 +454,23 @@ st.markdown(
 
 def show_report(view_name: str) -> None:
     """Fetch and display a Supabase report view."""
+
     try:
-        result = supabase.table(view_name).select("*").execute()
+        result = (
+            supabase
+            .table(view_name)
+            .select("*")
+            .execute()
+        )
 
         if result.data:
             df = pd.DataFrame(result.data)
-            st.dataframe(df, use_container_width=True, height=600)
+
+            st.dataframe(
+                df,
+                use_container_width=True,
+                height=600,
+            )
         else:
             st.info("No data found.")
 
@@ -227,661 +478,468 @@ def show_report(view_name: str) -> None:
         st.error(f"Error loading {view_name}: {exc}")
 
 
-tabs = st.tabs([
-    "Account Summary",
-    "Balance Sheet",
-    "Trial Balance",
-    "Reconciliation",
-    "Income Statement",
-    "Full Financial Statement",
-    "Chart of Accounts",
-    "Journal Register",
-])
+tabs = st.tabs(
+    [
+        "Account Summary",
+        "Balance Sheet",
+        "Trial Balance",
+        "Reconciliation",
+        "Income Statement",
+        "Full Financial Statement",
+        "Chart of Accounts",
+        "Journal Register",
+    ]
+)
 
 
 with tabs[0]:
     st.subheader("Account Summary")
-    if st.button("Load Account Summary", key="account_summary"):
+
+    if st.button(
+        "Load Account Summary",
+        key="account_summary",
+    ):
         show_report("view_account_summary")
+
 
 with tabs[1]:
     st.subheader("Balance Sheet")
-    if st.button("Generate Balance Sheet", key="balance_sheet"):
+
+    if st.button(
+        "Generate Balance Sheet",
+        key="balance_sheet",
+    ):
         show_report("view_balance_sheet")
+
 
 with tabs[2]:
     st.subheader("Trial Balance")
-    if st.button("Generate Trial Balance", key="trial_balance"):
+
+    if st.button(
+        "Generate Trial Balance",
+        key="trial_balance",
+    ):
         show_report("view_trial_balance")
+
 
 with tabs[3]:
     st.subheader("Reconciliation")
-    if st.button("Generate Reconciliation", key="reconciliation"):
+
+    if st.button(
+        "Generate Reconciliation",
+        key="reconciliation",
+    ):
         show_report("view_reconciliation")
+
 
 with tabs[4]:
     st.subheader("Income Statement")
-    if st.button("Generate Income Statement", key="income_statement"):
+
+    if st.button(
+        "Generate Income Statement",
+        key="income_statement",
+    ):
         show_report("view_income_statement")
+
 
 with tabs[5]:
     st.subheader("Full Financial Statement")
-    if st.button("Generate Full Financial Statement", key="full_financial_statement"):
+
+    if st.button(
+        "Generate Full Financial Statement",
+        key="full_financial_statement",
+    ):
         show_report("view_full_financial_statement")
+
 
 with tabs[6]:
     st.subheader("Chart of Accounts")
-    if st.button("Load Chart of Accounts", key="chart_of_accounts"):
+
+    if st.button(
+        "Load Chart of Accounts",
+        key="chart_of_accounts",
+    ):
         show_report("view_chart_of_accounts")
+
 
 with tabs[7]:
     st.subheader("Journal Register")
-    if st.button("Load Journal Register", key="journal_register"):
+
+    if st.button(
+        "Load Journal Register",
+        key="journal_register",
+    ):
         show_report("view_journal_register")
 ```
 
-### Step 6: Create Streamlit Account
-Go to share.streamlit.io → Sign in with GitHub
+---
 
-### Step 7: Deploy App
-1. Click Create app
-2. Repository → jewel0606/accsoft
-3. Branch → main
-4. Main file path → app.py
-5. App URL → accsoft
-6. Click Deploy → wait 60 seconds
+## Step 12: Configure Streamlit Secrets
 
-### Step 8: Files on GitHub
+Open:
+
+```text
+Streamlit Cloud
+→ App Settings
+→ Secrets
 ```
-accsoft/
-├── README.md
-├── requirements.txt
-├── db.py
-└── app.py
+
+Add:
+
+```toml
+SUPABASE_URL = "your-supabase-project-url"
+SUPABASE_KEY = "your-supabase-anon-key"
 ```
 
 ---
 
-## Level 2: Code Explanation
+## Step 13: Deploy the Application
 
-### GitHub — Why
-Streamlit Cloud cannot read files from your laptop. GitHub stores your code in the cloud so Streamlit can read it. Every time you edit and commit on GitHub, Streamlit updates automatically within 10 seconds.
+1. Sign in to Streamlit Community Cloud using GitHub.
+2. Select the repository `jewel0606/accsoft`.
+3. Select the `main` branch.
+4. Set the main file path to `app.py`.
+5. Choose the application URL `accsoft`.
+6. Deploy the application.
 
-### requirements.txt — Why
-Streamlit Cloud server starts empty. This file tells it what to install before running your code: streamlit, supabase, pandas.
+---
 
-### db.py — Line by Line
+# Level 2 — Code Explanation
+
+## requirements.txt
+
+The file tells Streamlit Cloud which Python packages to install.
+
+| Package | Purpose |
+|---|---|
+| `streamlit` | Creates the browser interface |
+| `supabase` | Connects Python to Supabase |
+| `pandas` | Converts query results into tables |
+
+---
+
+## db.py
+
+```python
+import streamlit as st
+```
+
+Imports Streamlit so the application can access Streamlit Secrets.
 
 ```python
 from supabase import create_client
-# Imports the connection tool from the supabase library
-
-SUPABASE_URL = "https://..."
-# Address of your Supabase database — like a home address
-
-SUPABASE_KEY = "eyJhbG..."
-# Password (anon key) — proves Python has read permission
-
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-# Opens the actual connection — stored as variable 'supabase'
-# Every other file imports this variable
 ```
 
-### app.py — Line by Line
+Imports the Supabase client function.
 
 ```python
-import streamlit as st          # Streamlit, nicknamed st
-from db import supabase         # Borrow the connection from db.py
-import pandas as pd             # Table tool, nicknamed pd
-
-st.set_page_config(...)         # Sets browser tab title and wide layout
-st.markdown("""...""")          # Draws the heading using HTML colors
-
-def show_report(view_name):     # Reusable function — write once, call many times
-    result = supabase.table(view_name).select("*").execute()
-    # Fetches all columns from the named Supabase view
-
-    df = pd.DataFrame(result.data)
-    # Converts raw data into a table Streamlit can display
-
-    st.dataframe(df, use_container_width=True, height=600)
-    # Draws the table — height=600 prevents freeze (never use height=10000)
-
-tab1, tab2... = st.tabs([...])  # Creates navigation tabs automatically
-
-with tab1:
-    if st.button("Load"):       # Button — when clicked calls show_report
-        show_report("view_name")
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 ```
 
-### How to Add a New Report Tab
-1. Add tab name to tabs list
-2. Add `with tabN:` block at bottom
-3. Commit on GitHub → Streamlit updates automatically
+Reads the Supabase URL and anon key from Streamlit Secrets.
+
+```python
+supabase = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY,
+)
+```
+
+Creates the connection used by `app.py`.
 
 ---
 
-## Level 3: SQL Supabase Structure
+## app.py
 
-### Table Creation Order
-Must follow this sequence — foreign keys require parent tables first:
-
-```
-1. currency          ← jnl needs currency_id
-2. chart_of_accounts ← jnl needs account_code
-3. contact           ← jnl needs contact_id for invoices/bills
-4. department        ← optional
-5. location          ← optional
-6. item              ← optional
-7. budget            ← optional
-8. user              ← optional
-9. jnl               ← always last
+```python
+def show_report(view_name: str) -> None:
 ```
 
-### Report Dependency Map
+Creates one reusable function for all report views.
 
+```python
+supabase.table(view_name).select("*").execute()
 ```
+
+Queries the selected Supabase view.
+
+```python
+df = pd.DataFrame(result.data)
+```
+
+Converts returned rows into a pandas DataFrame.
+
+```python
+st.dataframe(df)
+```
+
+Displays the report in the browser.
+
+---
+
+## Adding Another Report Tab
+
+1. Add the report name to the `st.tabs()` list.
+2. Add a new `with tabs[index]:` block.
+3. Call `show_report("view_name")`.
+4. Create the matching Supabase view.
+5. Grant `SELECT` access to the view.
+6. Commit the updated `app.py`.
+
+---
+
+# Level 3 — SQL and Supabase Structure
+
+## Main Dependency Map
+
+```text
+chart_of_accounts
+        +
+       jnl
+        ↓
+account_hierarchy
+        ↓
+account_hierarchy_map
+        ↓
+sum_per_account
+        ↓
+combine
+        ↓
+account_balance
+        ↓
+summery
+        ↓
+view_account_summary
+        ↓
+┌───────────────────────────────────────────────┐
+│ view_balance_sheet                            │
+│ view_trial_balance                            │
+│ view_reconciliation                           │
+│ view_income_statement                         │
+│ view_full_financial_statement                 │
+└───────────────────────────────────────────────┘
+```
+
+Additional views:
+
+```text
+chart_of_accounts
+        ↓
+view_chart_of_accounts
+```
+
+```text
 jnl + chart_of_accounts
         ↓
-   account_summary  — one row per account with debit/credit/balance
-        ↓
-       fs            — 5 aggregation levels (sort_order 0 to 4)
-        ↓
-   ┌────┴──────┬────────────────┬───────────────┬─────────────┐
- recon    balance_sheet   income_statement  trail_balance     fs
-(verify)  (asset/liab      (income/expense   (all accounts   (all
-           /equity)         + net income)     raw detail)     levels)
-
-jnl + contact (account_code = 106 = Accounts Payable)
-        ↓
-     Bill Master
-        ↓
-   bills_to_pay / aged_payables / vendor_statement
-
-jnl + contact (account_code = 107 = Accounts Receivable)
-        ↓
-   Invoice Master
-        ↓
-   customer_ledger / invoices_summary / aged_receivables / customer_statement
-
-jnl + chart_of_accounts (account_pattern = 'cash' or 'bank')
-        ↓
-   Cash Flow → Operating / Investing / Financing / Net / Opening / Closing
-```
-
-### Table Schemas
-
-**Table 1: jnl** — main transaction table, every entry goes here
-```sql
-create table public.jnl (
-  transaction_id character varying(40) not null,
-  transaction_line_id character varying(40) not null,
-  transaction_date date not null,
-  description character varying(400) not null,
-  account_code integer not null,
-  amount double precision not null,
-  dc character varying(10) not null,
-  transaction_type character varying(20) not null,
-  memo character varying(80) not null,
-  note character varying(400) null,
-  contact_id character varying(40) null,
-  status character varying(10) not null,
-  currency_id character varying(40) not null,
-  total_amount double precision not null,
-  due_date date null,
-  adjustment character varying(400) null,
-  tracking character varying(200) null,
-  created_date timestamp without time zone null,
-  related_transaction_id character varying(40) null,
-  payment_transaction_id character varying(40) null,
-  posting_period_id date null,
-  accounting_period_id date null,
-  created_by_id character varying(40) null,
-  department_id character varying(40) null,
-  location_id character varying(40) null,
-  attachment_id character varying(40) null,
-  item_id integer null,
-  quantity integer null,
-  rate double precision null,
-  expense_category_id character varying(40) null,
-  vat_rate double precision null,
-  vat_amount double precision null,
-  tax_rate double precision null,
-  tax_amount double precision null,
-  tracking_name1 character varying(200) null,
-  tracking_name2 character varying(200) null,
-  tracking_name3 character varying(200) null,
-  repet_post_start date null,
-  repet_post_frequency integer null,
-  repet_post_due integer null,
-  repet_post_end date null,
-  repet_post_type character varying(10) null,
-  repet_post_note character varying(200) null,
-  reminder_start date null,
-  reminder_frequency integer null,
-  reminder_end date null,
-  constraint jnl_pkey primary key (transaction_line_id),
-  constraint jnl_contact_id_fkey foreign KEY (contact_id) references contact (contact_id),
-  constraint jnl_currency_id_fkey foreign KEY (currency_id) references currency (currency_id),
-  constraint jnl_account_code_fkey foreign KEY (account_code) references chart_of_accounts (account_code),
-  constraint jnl_dc_check check (dc::text = any (array['debit','credit']::text[])),
-  constraint jnl_status_check check (status::text = any (array['draft','post','void']::text[])),
-  constraint jnl_transaction_type_check check (transaction_type::text = any (array['bill','invoice','journal','dnote','cnote','paid','received']::text[]))
-);
-```
-
-**Table 2: chart_of_accounts** — must exist before jnl
-```sql
-create table public.chart_of_accounts (
-  account_code bigint not null,
-  account_name character varying(300) not null,
-  account_sub1 character varying(300) null,
-  account_category character varying(100) null,
-  account_type character varying(70) not null,
-  account_sub2 character varying null,
-  account_pattern character varying null,
-  account_support character varying null,
-  constraint chart_of_accounts_pkey primary key (account_code),
-  constraint chart_of_accounts_account_name_key unique (account_name),
-  constraint chart_of_accounts_account_type_check check (
-    account_type::text = any (array['asset','liability','equity','income','expense']::text[]))
-);
-```
-
-**Table 3: contact** — needed for invoice/bill reports
-```sql
-create table public.contact (
-  contact_id character varying not null,
-  type text null,
-  name character varying(40) not null,
-  trade_license_name character varying(40) null,
-  tacking_name character varying(40) null,
-  address character varying(120) null,
-  bin character varying(40) null,
-  tin character varying(40) null,
-  notes character varying(120) null,
-  road_and_location character varying(40) null,
-  city character varying(40) null,
-  state character varying(40) null,
-  country character varying(40) null,
-  constraint contact_pkey primary key (contact_id),
-  constraint contact_type_check check (type = any (array['Customer','Supplier','Other']))
-);
-```
-
-**Tables 4–10: Supporting tables** (currency, department, location, item, budget, user, expense)
-```sql
-create table public.currency (currency_id character varying(40) not null, constraint currency_pkey primary key (currency_id));
-create table public.department (department_id character varying(40) not null, constraint department_pkey primary key (department_id));
-create table public.location (location_id character varying(40) not null, constraint location_pkey primary key (location_id));
-create table public.user (user_id character varying(40) not null, constraint user_pkey primary key (user_id));
-create table public.item (item_id integer not null, item_name character varying(300) not null, item_sub_category character varying(300) null, item_category character varying(300) null, constraint item_pkey primary key (item_id));
-create table public.budget (expense_category_id character varying(200) not null, name character varying(200) not null, category_type character varying(10) not null, sub_category_name character varying(200) null, constraint budget_pkey primary key (expense_category_id));
-create table public.expense (id serial not null, date date null, amount numeric(15,2) null, details character varying(300) null, month date null, payment character varying(100) null, main_category character varying(300) null, sub_category character varying(300) null, name character varying(300) null, constraint expense_pkey primary key (id));
+view_journal_register
 ```
 
 ---
 
-### Report Views — Complete List
+## Recursive Account Hierarchy
 
-**Group A — Master code views (jnl + chart_of_accounts):**
+The master SQL uses:
 
-| View | Final SELECT |
-|---|---|
-| view_chart_of_accounts | SELECT * FROM chart_of_accounts ORDER BY account_code |
-| view_trial_balance | Master code + SELECT * FROM trail_balance |
-| view_income_statement | Master code + SELECT * FROM income_statement |
-| view_balance_sheet | Master code + SELECT * FROM balance_sheet |
-| view_recon | Master code + SELECT * FROM recon |
+```sql
+WITH RECURSIVE account_hierarchy AS (...)
+```
 
-**Group B — Single query views:**
+The hierarchy supports:
 
-| View | Code |
-|---|---|
-| view_cash_flow | Code 8 |
-| view_journal_register | Code 9 |
+```text
+Root account
+    ↓
+Child account
+    ↓
+Grandchild account
+    ↓
+Additional descendant accounts
+```
 
-**Group C — Contact views (jnl + contact):**
-
-| View | Master + Code |
-|---|---|
-| view_vendor_ledger | Vendor Master + SELECT * FROM main |
-| view_purchase_summary | Vendor Master + SELECT * FROM purchase_summary |
-| view_customer_ledger | Invoice Master + SELECT * FROM customer_ledger |
-| view_invoices_summary | Invoice Master + SELECT * FROM invoices_summary |
-| view_aged_receivables | Invoice Master + SELECT * FROM aged_receivables |
-| view_bills_to_pay | Bill Master + SELECT * FROM bills_to_pay |
-| view_aged_payables | Bill Master + SELECT * FROM aged_payables |
-| view_vendor_statement | Bill Master + SELECT * FROM vendor_statement |
+The hierarchy is dynamic and is not limited to fixed `main_ledger` and `sub_ledger` columns.
 
 ---
 
-### Known Problems and Fixes
+## Important Master Columns
 
-**Problem 1: discount not allowed in transaction_type**
-Affects: Vendor report, Vendor Ledger, Purchase Summary
-Fix:
-```sql
-ALTER TABLE public.jnl DROP CONSTRAINT jnl_transaction_type_check;
-ALTER TABLE public.jnl ADD CONSTRAINT jnl_transaction_type_check
-CHECK (transaction_type IN ('bill','invoice','journal','dnote','cnote','paid','received','discount'));
+| Column | Purpose |
+|---|---|
+| `sorting` | Account hierarchy level |
+| `path` | Readable account hierarchy |
+| `path_codes` | Parent codes and current account code |
+| `old_debit` | Debit posted directly to the account |
+| `old_credit` | Credit posted directly to the account |
+| `old_final_balance` | Direct account balance |
+| `debit` | Debit including descendants |
+| `credit` | Credit including descendants |
+| `final_balance` | Balance including descendants |
+
+Example hierarchy path:
+
+```text
+Liabilities > Loans > Mortgage Payable
 ```
 
-**Problem 2: due_date allows NULL**
-Affects: All invoice and bill aging reports
-Fix: Always enter due_date when posting bill or invoice entries. Or set default:
-```sql
-ALTER TABLE public.jnl ALTER COLUMN due_date SET DEFAULT CURRENT_DATE;
-```
+Example hierarchy levels:
 
-**Problem 3: Cash Flow requires account_pattern**
-Affects: view_cash_flow
-Fix: Set account_pattern = 'cash' or 'bank' in chart_of_accounts for cash/bank accounts.
+```text
+sorting = 1 → root account
+sorting = 2 → child account
+sorting = 3 → grandchild account
+```
 
 ---
 
-### SQL Codes
+## Balance Rules
 
-**Code 1: Master Code** (generates all Group A reports by changing last line)
+For Asset and Expense accounts:
 
-```sql
-with
-  account_summary as (
-    select
-      coa.account_code, coa.account_type, coa.account_category,
-      case when coa.account_sub1 is null and coa.account_sub2 is null then coa.account_name
-           when coa.account_sub1 is null and coa.account_sub2 is not null then coa.account_sub2
-           else coa.account_sub1 end as main_ledger,
-      case when coa.account_sub2 is null then coa.account_name else coa.account_sub2 end as sub_ledger,
-      coa.account_name, coa.account_sub1, coa.account_sub2,
-      sum(case when jnl.dc::text = 'debit'::text then jnl.amount else 0 end) as total_debit,
-      sum(case when jnl.dc::text = 'credit'::text then jnl.amount else 0 end) as total_credit,
-      case when coa.account_type::text = any (array['asset','expense']::text[])
-           then sum(case when jnl.dc::text = 'debit'::text then jnl.amount else -jnl.amount end)
-           else sum(case when jnl.dc::text = 'credit'::text then jnl.amount else -jnl.amount end)
-      end as final_balance
-    from jnl join chart_of_accounts coa on jnl.account_code = coa.account_code
-    group by coa.account_code, coa.account_type, coa.account_category, coa.account_name, coa.account_sub1,
-      case when coa.account_sub1 is null then coa.account_name else coa.account_sub1 end,
-      case when coa.account_sub2 is null then coa.account_sub1 else coa.account_sub2 end
-  ),
-  fs as (
-    select account_summary.account_type, null::character varying as account_category,
-      null::text as main_ledger, null::text as sub_ledger, null::text as account_name,
-      sum(account_summary.total_debit) as total_debit, sum(account_summary.total_credit) as total_credit,
-      sum(account_summary.final_balance) as final_balance, 0 as sort_order
-    from account_summary group by account_summary.account_type
-    union all
-    select account_summary.account_type, account_summary.account_category,
-      null::text, null::text, null::text,
-      sum(account_summary.total_debit), sum(account_summary.total_credit), sum(account_summary.final_balance), 1
-    from account_summary group by account_summary.account_type, account_summary.account_category
-    union all
-    select account_summary.account_type, account_summary.account_category, account_summary.main_ledger,
-      null::text, null::text,
-      sum(account_summary.total_debit), sum(account_summary.total_credit), sum(account_summary.final_balance), 2
-    from account_summary group by account_summary.account_type, account_summary.account_category, account_summary.main_ledger
-    union all
-    select account_summary.account_type, account_summary.account_category, account_summary.main_ledger, account_summary.sub_ledger,
-      null::text,
-      sum(account_summary.total_debit), sum(account_summary.total_credit), sum(account_summary.final_balance), 3
-    from account_summary group by account_summary.account_type, account_summary.account_category, account_summary.main_ledger, account_summary.sub_ledger
-    union all
-    select account_summary.account_type, account_summary.account_category, account_summary.main_ledger, account_summary.sub_ledger,
-      account_summary.account_name, account_summary.total_debit, account_summary.total_credit, account_summary.final_balance, 4
-    from account_summary
-    order by 1, 2 desc, 3 desc, 4 desc, 9, 5
-  ),
-  recon as (
-    select fs.account_type, fs.account_category, fs.main_ledger, fs.sub_ledger, fs.account_name,
-      fs.total_debit, fs.total_credit, fs.final_balance, fs.sort_order
-    from fs where fs.account_category is null
-    union all
-    select 'income statement = income - expense', null, null, null, null, null, null,
-      (select fs.final_balance from fs where fs.account_type = 'income' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'expense' and fs.account_category is null), null
-    union all
-    select 'balance sheet = asset - liability - equity', null, null, null, null, null, null,
-      (select fs.final_balance from fs where fs.account_type = 'asset' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'liability' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'equity' and fs.account_category is null), null
-    union all
-    select 'asset - liability - equity - income + expense = 0', null, null, null, null, null, null,
-      (select fs.final_balance from fs where fs.account_type = 'asset' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'liability' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'equity' and fs.account_category is null) -
-      (select fs.final_balance from fs where fs.account_type = 'income' and fs.account_category is null) +
-      (select fs.final_balance from fs where fs.account_type = 'expense' and fs.account_category is null), null
-  ),
-  balance_sheet as (
-    select fs.account_type, fs.account_category, fs.main_ledger, fs.sub_ledger, fs.account_name,
-      fs.total_debit, fs.total_credit, fs.final_balance
-    from fs where fs.account_type = any (array['asset','liability','equity']) and fs.sort_order = 4
-    union all
-    select 'TOTAL', null, null, null, 'Total Balance', sum(fs.total_debit), sum(fs.total_credit),
-      (select fs_1.final_balance from fs fs_1 where fs_1.account_type = 'asset' and fs_1.account_category is null) -
-      (select fs_1.final_balance from fs fs_1 where fs_1.account_type = 'liability' and fs_1.account_category is null) -
-      (select fs_1.final_balance from fs fs_1 where fs_1.account_type = 'equity' and fs_1.account_category is null)
-    from fs where fs.account_type = any (array['asset','liability','equity']) and fs.sort_order = 4
-    order by 1, 2 desc nulls last, 3, 4, 5
-  ),
-  trail_balance as (
-    select account_summary.account_code, account_summary.account_type, account_summary.account_category,
-      account_summary.main_ledger, account_summary.sub_ledger, account_summary.account_name,
-      account_summary.account_sub1, account_summary.account_sub2,
-      account_summary.total_debit, account_summary.total_credit, account_summary.final_balance
-    from account_summary
-  ),
-  income_statement as (
-    select fs.account_type, fs.account_category, fs.main_ledger, fs.sub_ledger, fs.account_name,
-      fs.total_debit, fs.total_credit, fs.final_balance
-    from fs where fs.account_type = any (array['income','expense']) and fs.sort_order = 4
-    union all
-    select 'TOTAL', null, null, null, 'Net Income', sum(fs.total_debit), sum(fs.total_credit),
-      (select fs_1.final_balance from fs fs_1 where fs_1.account_type = 'income' and fs_1.account_category is null) -
-      (select fs_1.final_balance from fs fs_1 where fs_1.account_type = 'expense' and fs_1.account_category is null)
-    from fs where fs.account_type = any (array['income','expense']) and fs.sort_order = 4
-    order by 1, 2 desc nulls last, 3, 4, 5
-  )
--- Change this last line to switch reports:
--- select * from account_summary;     → Code 2: raw account data
--- select * from trail_balance;       → Code 5: Trial Balance
--- select * from fs;                  → Code 7: Full Financial Statement
--- select * from recon;               → Reconciliation
--- select account_type, account_category, main_ledger, sub_ledger, account_name, total_debit, total_credit, final_balance from balance_sheet; → Code 3: Balance Sheet
--- select account_type, account_category, main_ledger, sub_ledger, account_name, total_debit, total_credit, final_balance from income_statement; → Code 4: Income Statement
-select account_type, account_category, main_ledger, sub_ledger, account_name, total_debit, total_credit, final_balance
-from income_statement;
+```text
+Final Balance = Debit - Credit
 ```
 
-**Code 8: Cash Flow**
-```sql
-WITH report_params AS (
-    SELECT DATE '2024-07-01' AS period_start_date, DATE '2025-12-31' AS period_end_date
-),
-cash_accounts AS (
-    SELECT account_code, account_name FROM chart_of_accounts WHERE account_pattern IN ('cash', 'bank')
-),
-opening_cash_balance AS (
-    SELECT COALESCE(SUM(CASE WHEN jnl.dc = 'debit' THEN jnl.amount WHEN jnl.dc = 'credit' THEN -jnl.amount ELSE 0 END), 0) AS opening_balance
-    FROM jnl WHERE jnl.account_code IN (SELECT account_code FROM cash_accounts) AND jnl.transaction_date < (SELECT period_start_date FROM report_params)
-),
-cash_flow_entries AS (
-    SELECT jnl.transaction_id, jnl.transaction_date, jnl.account_code AS line_account_code, coa.account_type AS line_account_type, coa.account_category AS line_account_category, jnl.dc, jnl.amount, jnl.description,
-        CASE WHEN jnl.account_code IN (SELECT account_code FROM cash_accounts) AND jnl.dc = 'debit' THEN jnl.amount WHEN jnl.account_code IN (SELECT account_code FROM cash_accounts) AND jnl.dc = 'credit' THEN -jnl.amount ELSE 0 END AS cash_impact,
-        CASE WHEN jnl.account_code IN (SELECT account_code FROM cash_accounts) THEN TRUE ELSE FALSE END AS is_cash_line
-    FROM jnl JOIN chart_of_accounts coa ON jnl.account_code = coa.account_code
-    WHERE jnl.transaction_date BETWEEN (SELECT period_start_date FROM report_params) AND (SELECT period_end_date FROM report_params)
-    AND jnl.transaction_id IN (SELECT DISTINCT transaction_id FROM jnl WHERE account_code IN (SELECT account_code FROM cash_accounts) AND transaction_date BETWEEN (SELECT period_start_date FROM report_params) AND (SELECT period_end_date FROM report_params))
-),
-classified_transactions AS (
-    SELECT cfe.transaction_id, cfe.transaction_date, cfe.description, SUM(cfe.cash_impact) AS net_cash_change_for_txn,
-        MAX(CASE WHEN NOT cfe.is_cash_line THEN CASE WHEN cfe.line_account_type IN ('income','expense') THEN 'Operating' WHEN cfe.line_account_category IN ('Current Assets','Current Liabilities') AND cfe.line_account_code NOT IN (SELECT account_code FROM cash_accounts) THEN 'Operating' WHEN cfe.line_account_category = 'Non-Current Assets' THEN 'Investing' WHEN cfe.line_account_category IN ('Non-Current Liabilities','Shareholder Equity') THEN 'Financing' ELSE 'Unclassified' END ELSE NULL END) AS primary_classification_type
-    FROM cash_flow_entries cfe GROUP BY cfe.transaction_id, cfe.transaction_date, cfe.description HAVING SUM(cfe.cash_impact) != 0
-),
-cash_flow_summary AS (
-    SELECT primary_classification_type AS cash_flow_category, SUM(net_cash_change_for_txn) AS total_cash_flow
-    FROM classified_transactions WHERE primary_classification_type IS NOT NULL AND primary_classification_type != 'Unclassified' GROUP BY primary_classification_type
-),
-net_cash_flow_period AS (SELECT SUM(total_cash_flow) AS net_increase_decrease_in_cash FROM cash_flow_summary),
-closing_cash_balance AS (
-    SELECT COALESCE(SUM(CASE WHEN jnl.dc = 'debit' THEN jnl.amount WHEN jnl.dc = 'credit' THEN -jnl.amount ELSE 0 END), 0) AS closing_balance
-    FROM jnl WHERE jnl.account_code IN (SELECT account_code FROM cash_accounts) AND jnl.transaction_date <= (SELECT period_end_date FROM report_params)
-)
-SELECT 'Cash Flow from Operating Activities' AS Category, COALESCE(SUM(CASE WHEN cfs.cash_flow_category='Operating' THEN cfs.total_cash_flow ELSE 0 END),0) AS Amount FROM cash_flow_summary cfs
-UNION ALL SELECT 'Cash Flow from Investing Activities', COALESCE(SUM(CASE WHEN cfs.cash_flow_category='Investing' THEN cfs.total_cash_flow ELSE 0 END),0) FROM cash_flow_summary cfs
-UNION ALL SELECT 'Cash Flow from Financing Activities', COALESCE(SUM(CASE WHEN cfs.cash_flow_category='Financing' THEN cfs.total_cash_flow ELSE 0 END),0) FROM cash_flow_summary cfs
-UNION ALL SELECT 'Net Increase (Decrease) in Cash', (SELECT net_increase_decrease_in_cash FROM net_cash_flow_period)
-UNION ALL SELECT 'Cash at Beginning of Period', (SELECT opening_balance FROM opening_cash_balance)
-UNION ALL SELECT 'Cash at End of Period', (SELECT closing_balance FROM closing_cash_balance);
+For Liability, Equity, and Income accounts:
+
+```text
+Final Balance = Credit - Debit
 ```
 
-**Code 9: Journal Register**
+---
+
+## Avoiding Double-Counting
+
+Parent rows already include descendant balances.
+
+Therefore, report-wide totals must not add every displayed hierarchy row together.
+
+Use root rows:
+
 ```sql
-WITH report_params AS (
-    SELECT DATE '2024-01-01' AS period_start_date, DATE '2025-12-31' AS period_end_date
-),
-journal_register AS (
-    SELECT jnl.transaction_date, jnl.transaction_id, jnl.transaction_line_id, jnl.account_code, coa.account_name, jnl.description, jnl.memo,
-        CASE WHEN jnl.dc = 'debit' THEN jnl.amount ELSE 0 END AS debit,
-        CASE WHEN jnl.dc = 'credit' THEN jnl.amount ELSE 0 END AS credit
-    FROM jnl JOIN chart_of_accounts coa ON jnl.account_code = coa.account_code JOIN report_params rp ON TRUE
-    WHERE jnl.transaction_date BETWEEN rp.period_start_date AND rp.period_end_date
-    ORDER BY jnl.transaction_date, jnl.transaction_id, jnl.transaction_line_id
-)
-SELECT transaction_date, transaction_id, transaction_line_id, account_code, account_name, description, memo, debit, credit
-FROM journal_register;
+sorting = 1
 ```
 
-**Code 10: Ledger**
-```sql
-WITH dates AS (SELECT DATE '2024-07-01' AS start, DATE '2025-12-31' AS end),
-account AS (SELECT 'Accounts Payable' AS name),
-opening_balance AS (
-  SELECT COALESCE(SUM(CASE WHEN coa.account_type IN ('asset','expense') THEN CASE WHEN jnl.dc='debit' THEN jnl.amount WHEN jnl.dc='credit' THEN -jnl.amount ELSE 0 END ELSE CASE WHEN jnl.dc='debit' THEN -jnl.amount WHEN jnl.dc='credit' THEN jnl.amount ELSE 0 END END), 0) AS opening_balance
-  FROM jnl JOIN chart_of_accounts coa ON jnl.account_code=coa.account_code JOIN dates ON TRUE JOIN account ON TRUE
-  WHERE coa.account_name=account.name AND jnl.transaction_date < dates.start
-),
-ledger AS (
-  SELECT jnl.transaction_id, jnl.transaction_date, coa.account_name, coa.account_type,
-    CASE WHEN jnl.dc='debit' THEN jnl.amount ELSE 0 END AS debit,
-    CASE WHEN jnl.dc='credit' THEN jnl.amount ELSE 0 END AS credit,
-    SUM(CASE WHEN coa.account_type IN ('asset','expense') THEN CASE WHEN jnl.dc='debit' THEN jnl.amount WHEN jnl.dc='credit' THEN -jnl.amount ELSE 0 END ELSE CASE WHEN jnl.dc='debit' THEN -jnl.amount WHEN jnl.dc='credit' THEN jnl.amount ELSE 0 END END)
-    OVER (ORDER BY jnl.transaction_date, jnl.transaction_id, jnl.transaction_line_id) AS running_delta
-  FROM jnl JOIN chart_of_accounts coa ON jnl.account_code=coa.account_code JOIN dates ON TRUE JOIN account ON TRUE
-  WHERE coa.account_name=account.name AND jnl.transaction_date BETWEEN dates.start AND dates.end
-)
-SELECT NULL AS transaction_id, dates.start AS transaction_date, 'Opening Balance' AS account_name, 0 AS debit, 0 AS credit, opening_balance.opening_balance AS balance FROM dates, opening_balance
-UNION ALL SELECT transaction_id, transaction_date, account_name, debit, credit, opening_balance.opening_balance + running_delta AS balance FROM ledger, opening_balance
-UNION ALL SELECT NULL, NULL, 'Total', SUM(debit), SUM(credit), MAX(opening_balance.opening_balance) + CASE WHEN MAX(account_type) IN ('asset','expense') THEN SUM(debit)-SUM(credit) ELSE SUM(credit)-SUM(debit) END FROM ledger, opening_balance;
+Root rows already contain all lower-level balances.
+
+---
+
+## Dynamic View Updates
+
+The reports are normal PostgreSQL views.
+
+When `jnl` or `chart_of_accounts` changes, the views do not need to be recreated.
+
+The latest results are returned the next time Streamlit queries a view.
+
+```python
+supabase.table(
+    "view_trial_balance"
+).select("*").execute()
 ```
 
-**Code 11: Vendor Master** (base for Codes 12–13)
-```sql
-WITH dates AS (SELECT DATE '2025-12-31' AS d),
-main AS (
-  SELECT jnl.contact_id, contact.name,
-    CASE WHEN dc != 'credit' THEN payment_transaction_id ELSE transaction_id END AS txn,
-    CASE WHEN dc = 'credit' THEN amount WHEN dc = 'debit' THEN -amount ELSE 0 END AS final,
-    SUM(CASE WHEN dc='credit' THEN amount WHEN dc='debit' THEN -amount ELSE 0 END) OVER (PARTITION BY jnl.contact_id ORDER BY transaction_date, transaction_id) AS running,
-    ROW_NUMBER() OVER (PARTITION BY jnl.contact_id ORDER BY transaction_date, transaction_id) AS txn_row,
-    transaction_id, transaction_line_id, transaction_date, due_date, payment_transaction_id, amount, dc, description, account_code, transaction_type, memo, dates.d AS report_date
-  FROM jnl JOIN contact ON jnl.contact_id=contact.contact_id JOIN dates ON TRUE WHERE account_code=106
-),
-purchase_summary AS (
-  SELECT contact_id, name,
-    COUNT(DISTINCT CASE WHEN transaction_type='bill' THEN transaction_id ELSE NULL END) AS "Bills",
-    SUM(CASE WHEN transaction_type='bill' AND dc='credit' THEN amount ELSE 0 END) AS "Total Purchase",
-    SUM(CASE WHEN transaction_type IN ('cnote','discount') AND dc='debit' THEN amount ELSE 0 END) AS "Discounts & Returns",
-    SUM(CASE WHEN transaction_type='dnote' AND dc='credit' THEN amount ELSE 0 END) AS "Debit Notes",
-    SUM(final) AS "Net Purchases"
-  FROM main GROUP BY contact_id, name ORDER BY name
-)
--- Code 12: SELECT * FROM main;
--- Code 13: SELECT * FROM purchase_summary;
-SELECT * FROM main;
+---
+
+## Replacing Existing Views
+
+PostgreSQL may reject `CREATE OR REPLACE VIEW` when the new definition changes existing column names, order, or data types.
+
+Example error:
+
+```text
+cannot change name of view column
 ```
 
-**Code 14: Invoice Master** (base for Codes 15–18)
+Drop and recreate the affected view:
+
 ```sql
-WITH dates AS (SELECT DATE '2025-12-31' AS d),
-txn_base_ar AS (
-    SELECT CASE WHEN dc!='debit' THEN payment_transaction_id ELSE transaction_id END AS txn,
-        CASE WHEN dc='debit' THEN amount WHEN dc='credit' THEN -amount ELSE 0 END AS final,
-        SUM(CASE WHEN dc='debit' THEN amount WHEN dc='credit' THEN -amount ELSE 0 END) OVER (PARTITION BY CASE WHEN dc!='debit' THEN payment_transaction_id ELSE transaction_id END ORDER BY transaction_date, transaction_id) AS running,
-        ROW_NUMBER() OVER (PARTITION BY CASE WHEN dc!='debit' THEN payment_transaction_id ELSE transaction_id END ORDER BY transaction_date, transaction_id) AS txn_row,
-        transaction_id, transaction_line_id, transaction_date, due_date, payment_transaction_id, amount, dc, description, account_code, transaction_type, memo, contact_id, dates.d AS report_date
-    FROM jnl, dates WHERE account_code=107 AND transaction_date<=dates.d ORDER BY transaction_date
-),
-balance_ar AS (SELECT * FROM txn_base_ar WHERE (txn,txn_row) IN (SELECT txn,MAX(txn_row) FROM txn_base_ar GROUP BY txn)),
-info_ar AS (SELECT * FROM txn_base_ar WHERE (txn,txn_row) IN (SELECT txn,MIN(txn_row) FROM txn_base_ar GROUP BY txn)),
-summary_ar AS (
-    SELECT balance_ar.txn, balance_ar.final, balance_ar.running, balance_ar.txn_row,
-        balance_ar.report_date-info_ar.transaction_date AS txn_diff, balance_ar.report_date-info_ar.due_date AS due_diff,
-        info_ar.transaction_id, info_ar.transaction_line_id, info_ar.transaction_date, info_ar.due_date, info_ar.payment_transaction_id, info_ar.amount, info_ar.dc, info_ar.description, info_ar.account_code, info_ar.transaction_type, info_ar.memo, info_ar.contact_id
-    FROM balance_ar JOIN info_ar ON balance_ar.txn=info_ar.txn
-),
-invoices_summary AS (
-    SELECT txn, running AS outstanding_amount, transaction_id, transaction_date, due_date, contact_id, description,
-        CASE WHEN due_diff<=0 THEN running ELSE 0 END AS current_due,
-        CASE WHEN due_diff BETWEEN 1 AND 30 THEN running ELSE 0 END AS days_1_30_overdue,
-        CASE WHEN due_diff BETWEEN 31 AND 60 THEN running ELSE 0 END AS days_31_60_overdue,
-        CASE WHEN due_diff BETWEEN 61 AND 90 THEN running ELSE 0 END AS days_61_90_overdue,
-        CASE WHEN due_diff>90 THEN running ELSE 0 END AS days_90_plus_overdue
-    FROM summary_ar WHERE running!=0 ORDER BY due_date, transaction_id
-),
-aged_receivables AS (
-    SELECT contact_id, SUM(CASE WHEN due_diff<=0 THEN running ELSE 0 END) AS current_due_total, SUM(CASE WHEN due_diff BETWEEN 1 AND 30 THEN running ELSE 0 END) AS days_1_30, SUM(CASE WHEN due_diff BETWEEN 31 AND 60 THEN running ELSE 0 END) AS days_31_60, SUM(CASE WHEN due_diff BETWEEN 61 AND 90 THEN running ELSE 0 END) AS days_61_90, SUM(CASE WHEN due_diff>90 THEN running ELSE 0 END) AS days_90_plus, SUM(running) AS total_receivable
-    FROM summary_ar WHERE running!=0 GROUP BY contact_id ORDER BY contact_id
-),
-customer_statement AS (
-    SELECT contact_id, transaction_id, transaction_date, due_date, description, dc, amount, running AS transaction_balance
-    FROM summary_ar WHERE running!=0 ORDER BY contact_id, transaction_date, transaction_id
-),
-customer_ledger AS (
-    SELECT jnl.contact_id, contact.name, CASE WHEN dc!='debit' THEN payment_transaction_id ELSE transaction_id END AS txn,
-        CASE WHEN dc='debit' THEN amount WHEN dc='credit' THEN -amount ELSE 0 END AS final,
-        SUM(CASE WHEN dc='debit' THEN amount WHEN dc='credit' THEN -amount ELSE 0 END) OVER (PARTITION BY jnl.contact_id ORDER BY transaction_date, transaction_id) AS running,
-        ROW_NUMBER() OVER (PARTITION BY jnl.contact_id ORDER BY transaction_date, transaction_id) AS txn_row,
-        transaction_id, transaction_line_id, transaction_date, due_date, payment_transaction_id, amount, dc, description, account_code, transaction_type, memo, dates.d AS report_date
-    FROM jnl JOIN contact ON jnl.contact_id=contact.contact_id JOIN dates ON TRUE WHERE account_code=107
-)
--- Code 15: SELECT * FROM customer_ledger;
--- Code 16: SELECT * FROM invoices_summary;
--- Code 17: SELECT * FROM aged_receivables;
--- Code 18: SELECT * FROM customer_statement;
-SELECT * FROM customer_ledger;
+DROP VIEW IF EXISTS public.view_balance_sheet;
 ```
 
-**Code 19: Bill Master** (base for Codes 20–22)
+Then create the replacement:
+
 ```sql
-WITH dates AS (SELECT DATE '2025-12-31' AS d),
-txn_base AS (
-  SELECT CASE WHEN dc!='credit' THEN payment_transaction_id ELSE transaction_id END AS txn,
-    CASE WHEN dc='credit' THEN amount WHEN dc='debit' THEN -amount ELSE 0 END AS final,
-    SUM(CASE WHEN dc='credit' THEN amount WHEN dc='debit' THEN -amount ELSE 0 END) OVER (PARTITION BY CASE WHEN dc!='credit' THEN payment_transaction_id ELSE transaction_id END ORDER BY transaction_date, transaction_id) AS running,
-    ROW_NUMBER() OVER (PARTITION BY CASE WHEN dc!='credit' THEN payment_transaction_id ELSE transaction_id END ORDER BY transaction_date, transaction_id) AS txn_row,
-    transaction_id, transaction_line_id, transaction_date, due_date, payment_transaction_id, amount, dc, description, account_code, transaction_type, memo, contact_id, dates.d AS report_date
-  FROM jnl, dates WHERE account_code=106 AND transaction_date<=dates.d ORDER BY transaction_date
-),
-balance AS (SELECT * FROM txn_base WHERE (txn,txn_row) IN (SELECT txn,MAX(txn_row) FROM txn_base GROUP BY txn)),
-info AS (SELECT * FROM txn_base WHERE (txn,txn_row) IN (SELECT txn,MIN(txn_row) FROM txn_base GROUP BY txn)),
-summary AS (
-  SELECT balance.txn, balance.final, balance.running, balance.txn_row,
-    balance.report_date-info.transaction_date AS txn_diff, balance.report_date-info.due_date AS due_diff,
-    info.transaction_id, info.transaction_line_id, info.transaction_date, info.due_date, info.payment_transaction_id, info.amount, info.dc, info.description, info.account_code, info.transaction_type, info.memo, info.contact_id
-  FROM balance JOIN info ON balance.txn=info.txn
-),
-bills_to_pay AS (
-  SELECT txn, CASE WHEN due_diff<30 THEN running ELSE 0 END AS month_1_less, CASE WHEN due_diff BETWEEN 31 AND 60 THEN running ELSE 0 END AS month_2, CASE WHEN due_diff BETWEEN 61 AND 90 THEN running ELSE 0 END AS month_3, CASE WHEN due_diff>90 THEN running ELSE 0 END AS more
-  FROM summary ORDER BY txn
-),
-aged_payables AS (SELECT contact_id, SUM(running) AS total_due FROM summary GROUP BY contact_id),
-vendor_statement AS (SELECT contact_id, * FROM summary WHERE running!=0)
--- Code 20: SELECT * FROM bills_to_pay;
--- Code 21: SELECT * FROM aged_payables;
--- Code 22: SELECT * FROM vendor_statement;
-SELECT * FROM bills_to_pay;
+CREATE VIEW public.view_balance_sheet AS
+SELECT ...;
+```
+
+Recreate dependent views in the correct order when necessary.
+
+---
+
+## Data Requirements
+
+- `account_sub1` must contain the exact immediate parent account name
+- `account_name` must remain unique
+- Every journal `account_code` must exist in `chart_of_accounts`
+- `dc` must contain `debit` or `credit`
+- Invoice and bill aging reports require valid `due_date` values
+- Cash and bank accounts should use `account_pattern = 'cash'` or `account_pattern = 'bank'`
+- Report-wide totals should use root accounts only
+
+---
+
+## SQL Source File
+
+To keep this README readable, store the complete table definitions, recursive master query, report-view definitions, and additional report queries in:
+
+```text
+database.sql
+```
+
+Recommended `database.sql` order:
+
+```text
+1. Table definitions
+2. Seed data
+3. RLS policies
+4. view_account_summary
+5. view_balance_sheet
+6. view_trial_balance
+7. view_reconciliation
+8. view_income_statement
+9. view_full_financial_statement
+10. view_chart_of_accounts
+11. view_journal_register
+12. Additional invoice, bill, vendor, ledger, and cash-flow reports
+```
+
+---
+
+## Future Improvements
+
+- Authentication and user login
+- Journal-entry forms
+- Invoice and bill forms
+- Date filters
+- Account filters
+- Excel export
+- PDF export
+- Dashboard charts
+- Budget comparison
+- Department and location reporting
+- Customer and vendor statements
+- Automated period closing
+- Audit logs
+- Role-based access control
+
+---
+
+## Final Architecture
+
+```text
+Accounting data
+      ↓
+Supabase PostgreSQL tables
+      ↓
+Recursive SQL account hierarchy
+      ↓
+SQL financial report views
+      ↓
+Supabase Python client
+      ↓
+Streamlit report interface
+      ↓
+GitHub and Streamlit Cloud deployment
 ```
 
 ---
