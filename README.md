@@ -427,25 +427,67 @@ Store Supabase credentials in Streamlit Secrets. Do not commit private credentia
 ## Step 11: Create app.py
 
 ```python
+"""
+accsoft — SQL-Based Accounting System
+
+Purpose:
+This Streamlit application connects to Supabase PostgreSQL and displays
+live accounting reports in a web browser.
+
+The accounting calculations are performed inside Supabase SQL views.
+This Python file only:
+
+1. Connects to Supabase through the imported supabase client.
+2. Loads data from selected report views.
+3. Converts the returned data into pandas DataFrames.
+4. Displays the reports in separate Streamlit tabs.
+
+Main report views:
+- view_account_summary
+- view_balance_sheet
+- view_trial_balance
+- view_reconciliation
+- view_income_statement
+- view_full_financial_statement
+- view_chart_of_accounts
+- view_journal_register
+"""
+
+
+# Import pandas for converting Supabase data into DataFrames.
 import pandas as pd
+
+# Import Streamlit for creating the browser-based application.
 import streamlit as st
 
+# Import the existing Supabase connection from db.py.
 from db import supabase
 
 
+# Configure the Streamlit page.
+#
+# page_title:
+# Sets the title shown in the browser tab.
+#
+# layout="wide":
+# Uses the full browser width so reports with many columns have more space.
 st.set_page_config(
     page_title="accsoft — Accounting System",
     layout="wide",
 )
 
+
+# Display the main application heading and description.
+#
+# st.markdown allows HTML formatting because unsafe_allow_html=True.
+# The HTML below:
+# - displays the main title
+# - displays a short description
+# - adds a horizontal line
 st.markdown(
     """
-    <h1 style="color:#2c3e50;">
-        accsoft — SQL-Based Accounting System
-    </h1>
-    <p>
-        All reports load live from Supabase PostgreSQL views.
-    </p>
+    <h1 style="color:#2c3e50;">accsoft — SQL-Based Accounting System</h1>
+    <p>All reports load live from Supabase PostgreSQL views.</p>
     <hr>
     """,
     unsafe_allow_html=True,
@@ -453,122 +495,245 @@ st.markdown(
 
 
 def show_report(view_name: str) -> None:
-    """Fetch and display a Supabase report view."""
+    """
+    Fetch and display a Supabase report view.
+
+    Parameters
+    ----------
+    view_name : str
+        The name of the Supabase table or view that should be loaded.
+
+    Process
+    -------
+    1. Query all columns from the selected Supabase view.
+    2. Check whether data was returned.
+    3. Convert the returned records into a pandas DataFrame.
+    4. Display the DataFrame as an interactive Streamlit table.
+    5. Show a message when no data is available.
+    6. Show an error message if the query fails.
+    """
 
     try:
-        result = (
-            supabase
-            .table(view_name)
-            .select("*")
-            .execute()
-        )
+        # Query every column from the selected Supabase view.
+        #
+        # table(view_name):
+        # Selects the Supabase table or view.
+        #
+        # select("*"):
+        # Requests all available columns.
+        #
+        # execute():
+        # Sends the request to Supabase and returns the result.
+        result = supabase.table(view_name).select("*").execute()
 
+        # Check whether Supabase returned one or more records.
         if result.data:
+            # Convert the list of returned records into a pandas DataFrame.
             df = pd.DataFrame(result.data)
 
-            st.dataframe(
-                df,
-                use_container_width=True,
-                height=600,
-            )
+            # Display the DataFrame as an interactive Streamlit table.
+            #
+            # use_container_width=True:
+            # Makes the table use the available page width.
+            #
+            # height=600:
+            # Sets the visible table height to 600 pixels.
+            st.dataframe(df, use_container_width=True, height=600)
+
         else:
+            # Display this message when the selected view has no records.
             st.info("No data found.")
 
     except Exception as exc:
+        # Display an error message if the Supabase query or table display fails.
+        #
+        # view_name identifies the report that caused the error.
+        # exc contains the original error message.
         st.error(f"Error loading {view_name}: {exc}")
 
 
-tabs = st.tabs(
-    [
-        "Account Summary",
-        "Balance Sheet",
-        "Trial Balance",
-        "Reconciliation",
-        "Income Statement",
-        "Full Financial Statement",
-        "Chart of Accounts",
-        "Journal Register",
-    ]
-)
+# Create eight navigation tabs.
+#
+# Each tab represents one accounting report.
+# The returned tab objects are stored inside the tabs list.
+tabs = st.tabs([
+    "Account Summary",
+    "Balance Sheet",
+    "Trial Balance",
+    "Reconciliation",
+    "Income Statement",
+    "Full Financial Statement",
+    "Chart of Accounts",
+    "Journal Register",
+])
 
 
+# ---------------------------------------------------------------------------
+# TAB 1: ACCOUNT SUMMARY
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - direct account balances
+# - rolled-up account balances
+# - account hierarchy information
+#
+# Supabase view:
+# view_account_summary
 with tabs[0]:
+    # Display the report heading.
     st.subheader("Account Summary")
 
-    if st.button(
-        "Load Account Summary",
-        key="account_summary",
-    ):
+    # Load the report only when the user clicks the button.
+    #
+    # key="account_summary":
+    # Gives the button a unique Streamlit identifier.
+    if st.button("Load Account Summary", key="account_summary"):
+        # Fetch and display the Account Summary view.
         show_report("view_account_summary")
 
 
+# ---------------------------------------------------------------------------
+# TAB 2: BALANCE SHEET
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - assets
+# - liabilities
+# - equity
+# - Balance Sheet check
+#
+# Supabase view:
+# view_balance_sheet
 with tabs[1]:
+    # Display the report heading.
     st.subheader("Balance Sheet")
 
-    if st.button(
-        "Generate Balance Sheet",
-        key="balance_sheet",
-    ):
+    # Generate the Balance Sheet when the button is clicked.
+    if st.button("Generate Balance Sheet", key="balance_sheet"):
+        # Fetch and display the Balance Sheet view.
         show_report("view_balance_sheet")
 
 
+# ---------------------------------------------------------------------------
+# TAB 3: TRIAL BALANCE
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - debit balances
+# - credit balances
+# - final account balances
+#
+# Supabase view:
+# view_trial_balance
 with tabs[2]:
+    # Display the report heading.
     st.subheader("Trial Balance")
 
-    if st.button(
-        "Generate Trial Balance",
-        key="trial_balance",
-    ):
+    # Generate the Trial Balance when the button is clicked.
+    if st.button("Generate Trial Balance", key="trial_balance"):
+        # Fetch and display the Trial Balance view.
         show_report("view_trial_balance")
 
 
+# ---------------------------------------------------------------------------
+# TAB 4: RECONCILIATION
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - Income Statement calculation
+# - Balance Sheet calculation
+# - complete accounting-equation check
+#
+# Supabase view:
+# view_reconciliation
 with tabs[3]:
+    # Display the report heading.
     st.subheader("Reconciliation")
 
-    if st.button(
-        "Generate Reconciliation",
-        key="reconciliation",
-    ):
+    # Generate the Reconciliation report when the button is clicked.
+    if st.button("Generate Reconciliation", key="reconciliation"):
+        # Fetch and display the Reconciliation view.
         show_report("view_reconciliation")
 
 
+# ---------------------------------------------------------------------------
+# TAB 5: INCOME STATEMENT
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - income accounts
+# - expense accounts
+# - Net Income
+#
+# Supabase view:
+# view_income_statement
 with tabs[4]:
+    # Display the report heading.
     st.subheader("Income Statement")
 
-    if st.button(
-        "Generate Income Statement",
-        key="income_statement",
-    ):
+    # Generate the Income Statement when the button is clicked.
+    if st.button("Generate Income Statement", key="income_statement"):
+        # Fetch and display the Income Statement view.
         show_report("view_income_statement")
 
 
+# ---------------------------------------------------------------------------
+# TAB 6: FULL FINANCIAL STATEMENT
+# ---------------------------------------------------------------------------
+#
+# Displays:
+# - assets
+# - liabilities
+# - equity
+# - income
+# - expenses
+# - account hierarchy paths
+#
+# Supabase view:
+# view_full_financial_statement
 with tabs[5]:
+    # Display the report heading.
     st.subheader("Full Financial Statement")
 
-    if st.button(
-        "Generate Full Financial Statement",
-        key="full_financial_statement",
-    ):
+    # Generate the full financial report when the button is clicked.
+    if st.button("Generate Full Financial Statement", key="full_financial_statement"):
+        # Fetch and display the Full Financial Statement view.
         show_report("view_full_financial_statement")
 
 
+# ---------------------------------------------------------------------------
+# TAB 7: CHART OF ACCOUNTS
+# ---------------------------------------------------------------------------
+#
+# Displays the complete account structure used by the accounting system.
+#
+# Supabase view:
+# view_chart_of_accounts
 with tabs[6]:
+    # Display the report heading.
     st.subheader("Chart of Accounts")
 
-    if st.button(
-        "Load Chart of Accounts",
-        key="chart_of_accounts",
-    ):
+    # Load the Chart of Accounts when the button is clicked.
+    if st.button("Load Chart of Accounts", key="chart_of_accounts"):
+        # Fetch and display the Chart of Accounts view.
         show_report("view_chart_of_accounts")
 
 
+# ---------------------------------------------------------------------------
+# TAB 8: JOURNAL REGISTER
+# ---------------------------------------------------------------------------
+#
+# Displays every journal transaction line stored in the system.
+#
+# Supabase view:
+# view_journal_register
 with tabs[7]:
+    # Display the report heading.
     st.subheader("Journal Register")
 
-    if st.button(
-        "Load Journal Register",
-        key="journal_register",
-    ):
+    # Load the Journal Register when the button is clicked.
+    if st.button("Load Journal Register", key="journal_register"):
+        # Fetch and display the Journal Register view.
         show_report("view_journal_register")
 ```
 
