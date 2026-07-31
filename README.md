@@ -942,6 +942,971 @@ Streamlit report interface
 GitHub and Streamlit Cloud deployment
 ```
 
+# SQL Financial Report Codes
+
+The following SQL codes use one recursive master query to build the complete chart-of-accounts hierarchy and calculate direct and rolled-up account balances.
+
+The original SQL query logic, names, calculations, columns, spelling, and report structure have not been changed. Additional comments have only been added to explain how each section works.
+
+---
+
+# Code 1: Master code (Master code for generate all report)
+
+```sql
+/*
+===============================================================================
+CODE 1: MASTER CODE
+===============================================================================
+
+Purpose:
+- Builds a complete multi-level account hierarchy.
+- Calculates each account's direct debit, credit and final balance.
+- Rolls child-account balances into all parent accounts.
+- Produces the final reusable CTE named "summery".
+- Acts as the base query for Codes 2 to 7.
+
+Main data sources:
+- chart_of_accounts
+- jnl
+
+Main hierarchy fields:
+- sorting:
+  Shows the account depth.
+  Root account = 1
+  Child account = 2
+  Grandchild account = 3
+  Additional descendants continue increasing.
+
+- path:
+  Shows the readable account hierarchy.
+
+  Example:
+  Loan > Loan Payable > Mortgage Payable
+
+- path_codes:
+  Stores every account code in the hierarchy path.
+
+  Example:
+  {102,126,128}
+
+Balance fields:
+- old_debit:
+  Debit posted directly to the account.
+
+- old_credit:
+  Credit posted directly to the account.
+
+- old_final_balance:
+  Final balance from transactions posted directly to the account.
+
+- debit:
+  Debit posted to the account and all descendant accounts.
+
+- credit:
+  Credit posted to the account and all descendant accounts.
+
+- final_balance:
+  Final balance of the account and all descendant accounts.
+
+Important:
+- The final CTE ends with a comma because additional report CTEs can be
+  appended after the master code.
+===============================================================================
+*/
+
+WITH RECURSIVE account_hierarchy AS (
+    /*
+      Builds the complete account hierarchy.
+
+
+      sorting:
+      Shows the account level. Root = 1, child = 2, etc.
+
+
+      path:
+      Creates a readable hierarchy such as:
+      Loan > Loan Payable > Mortgage Payable
+
+
+      path_codes:
+      Stores the account codes of every parent and the current account.
+      Example: {102,126,128}
+    */
+
+
+    /*
+      Root-account selection.
+
+      A root account is an account without a parent account.
+      Therefore, account_sub1 must be NULL.
+
+      Each root account starts with:
+      - sorting = 1
+      - path containing its own account name
+      - path_codes containing its own account code
+    */
+
+    -- Root accounts: accounts without a parent
+    SELECT
+        coa.account_category,
+        coa.account_type,
+        coa.account_code,
+        1 AS sorting,
+        coa.account_name,
+        coa.account_sub1,
+        coa.account_name::text AS path,
+        ARRAY[coa.account_code] AS path_codes
+    FROM chart_of_accounts AS coa
+    WHERE coa.account_sub1 IS NULL
+
+
+    UNION ALL
+
+
+    /*
+      Recursive child-account selection.
+
+      Each child account is connected to its immediate parent using:
+
+      coa.account_sub1 = ah.account_name
+
+      For every child account:
+      - sorting increases by 1
+      - the account name is added to path
+      - the account code is added to path_codes
+
+      The recursive query continues until no additional child accounts exist.
+    */
+
+    -- Recursively attach child accounts to their parent accounts
+    SELECT
+        coa.account_category,
+        coa.account_type,
+        coa.account_code,
+        ah.sorting + 1,
+        coa.account_name,
+        coa.account_sub1,
+        CONCAT(ah.path, ' > ', coa.account_name) AS path,
+        ah.path_codes || coa.account_code
+    FROM chart_of_accounts AS coa
+    JOIN account_hierarchy AS ah
+        ON coa.account_sub1 = ah.account_name
+),
+
+
+account_hierarchy_map AS (
+    /*
+      Converts path_codes into parent-account relationships.
+
+
+      Example:
+      path_codes = {102,126,128}
+      account_code = 128
+
+
+      Result:
+      102 | 128
+      126 | 128
+      128 | 128
+
+
+      This allows every account balance to roll up to all parents.
+    */
+
+
+    /*
+      UNNEST converts each path_codes array into separate rows.
+
+      For the path:
+      {102,126,128}
+
+      The current account 128 is mapped to:
+      - parent account 102
+      - parent account 126
+      - itself, account 128
+
+      This mapping is later used to add every descendant balance to each
+      parent account.
+    */
+
+    SELECT
+        UNNEST(path_codes) AS parent_account_code,
+        account_code
+    FROM account_hierarchy
+),
+
+
+sum_per_account AS (
+    /*
+      Calculates each account's own debit, credit and final balance.
+
+
+      Asset and expense:
+      final balance = debit - credit
+
+
+      Liability, equity and income:
+      final balance = credit - debit
+    */
+
+
+    /*
+      This CTE calculates only transactions posted directly to each account.
+
+      It does not perform hierarchy roll-up.
+
+      total_debit:
+      Adds journal amounts where dc = debit.
+
+      total_credit:
+      Adds journal amounts where dc = credit.
+
+      final_balance:
+      Uses the normal balance rule based on account_type.
+    */
+
+    SELECT
+        coa.account_code,
+        coa.account_name,
+
+
+        /*
+          Calculate total debit posted directly to the account.
+
+          Credit rows contribute zero to total_debit.
+        */
+
+        SUM(
+            CASE
+                WHEN jnl.dc::text = 'debit'::text
+                THEN jnl.amount
+                ELSE 0::double precision
+            END
+        ) AS total_debit,
+
+
+        /*
+          Calculate total credit posted directly to the account.
+
+          Debit rows contribute zero to total_credit.
+        */
+
+        SUM(
+            CASE
+                WHEN jnl.dc::text = 'credit'::text
+                THEN jnl.amount
+                ELSE 0::double precision
+            END
+        ) AS total_credit,
+
+
+        /*
+          Calculate the direct final balance.
+
+          Asset and expense accounts normally have debit balances:
+          debit - credit
+
+          Liability, equity and income accounts normally have credit balances:
+          credit - debit
+        */
+
+        CASE
+            WHEN coa.account_type::text = ANY (
+                ARRAY['asset', 'expense']::text[]
+            )
+            THEN SUM(
+                CASE
+                    WHEN jnl.dc::text = 'debit'::text
+                    THEN jnl.amount
+                    ELSE -jnl.amount
+                END
+            )
+            ELSE SUM(
+                CASE
+                    WHEN jnl.dc::text = 'credit'::text
+                    THEN jnl.amount
+                    ELSE -jnl.amount
+                END
+            )
+        END AS final_balance
+
+
+    /*
+      Join every journal line to its chart-of-accounts record using
+      account_code.
+    */
+
+    FROM jnl
+    JOIN chart_of_accounts AS coa
+        ON jnl.account_code = coa.account_code
+
+
+    /*
+      One result row is created for each individual account.
+    */
+
+    GROUP BY
+        coa.account_code,
+        coa.account_name,
+        coa.account_type
+),
+
+
+combine AS (
+    /*
+      Joins the account hierarchy with each account's own balance.
+
+
+      COALESCE changes NULL balances to zero for accounts without
+      journal transactions.
+    */
+
+
+    /*
+      The hierarchy contains all accounts, including accounts without
+      journal transactions.
+
+      The LEFT JOIN keeps those accounts in the report.
+
+      COALESCE converts missing balances to zero.
+    */
+
+    SELECT
+        COALESCE(ab.total_debit, 0.0) AS debit,
+        COALESCE(ab.total_credit, 0.0) AS credit,
+        COALESCE(ab.final_balance, 0.0) AS final_balance,
+        ah.*
+    FROM account_hierarchy AS ah
+    LEFT JOIN sum_per_account AS ab
+        ON ab.account_code = ah.account_code
+),
+
+
+account_balance AS (
+    /*
+      Rolls account balances upward through the hierarchy.
+
+
+      Each parent receives:
+      - its own balance
+      - direct child balances
+      - all lower descendant balances
+    */
+
+
+    /*
+      account_hierarchy_map identifies all parent and descendant
+      relationships.
+
+      combine contains each account's direct balances.
+
+      The GROUP BY parent_account_code calculates one rolled-up balance for
+      every account.
+
+      Each account receives:
+      - its own direct balance
+      - all direct child balances
+      - all lower descendant balances
+    */
+
+    SELECT
+        am.parent_account_code,
+        SUM(com.debit) AS new_debit,
+        SUM(com.credit) AS new_credit,
+        SUM(com.final_balance) AS new_final_balance
+    FROM account_hierarchy_map AS am
+    JOIN combine AS com
+        ON com.account_code = am.account_code
+    GROUP BY
+        am.parent_account_code
+),
+
+
+summery AS (
+    /*
+      Final master report dataset.
+
+
+      old_debit, old_credit, old_final_balance:
+      Amounts posted directly to the account.
+
+
+      debit, credit, final_balance:
+      Rolled-up amounts including all child accounts.
+    */
+
+
+    /*
+      This is the final reusable master-report dataset.
+
+      Direct balance columns:
+      - old_debit
+      - old_credit
+      - old_final_balance
+
+      Rolled-up hierarchy columns:
+      - debit
+      - credit
+      - final_balance
+
+      The direct columns come from combine.
+
+      The rolled-up columns come from account_balance.
+    */
+
+    SELECT
+        com.account_category,
+        com.account_type,
+        com.account_code,
+        com.sorting,
+        com.account_name,
+        com.account_sub1,
+        com.path,
+        com.path_codes,
+
+
+        /*
+          Preserve each account's own direct transaction amounts.
+        */
+
+        com.debit AS old_debit,
+        com.credit AS old_credit,
+        com.final_balance AS old_final_balance,
+
+
+        /*
+          Add balances that include the current account and all descendants.
+        */
+
+        ab.new_debit AS debit,
+        ab.new_credit AS credit,
+        ab.new_final_balance AS final_balance
+
+
+    FROM combine AS com
+    LEFT JOIN account_balance AS ab
+        ON ab.parent_account_code = com.account_code
+
+
+    /*
+      Sort accounts using the complete hierarchy path.
+    */
+
+    ORDER BY
+        com.path
+),	
+```
+
+---
+
+# Code 2: account_summary - raw report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 2: ACCOUNT SUMMARY
+===============================================================================
+
+Purpose:
+- Displays the complete account hierarchy.
+- Shows both direct and rolled-up account balances.
+- Removes accounts where all rolled-up amounts are zero.
+
+Required:
+- Paste this SELECT after Code 1.
+- Code 1 must end with the summery CTE.
+
+Output:
+- Account type
+- Account category
+- Account code
+- Account name
+- Hierarchy path
+- Direct debit, credit and final balance
+- Rolled-up debit, credit and final balance
+===============================================================================
+*/
+
+SELECT
+    account_type,
+    account_category,
+    account_code,
+    account_name,
+    path,
+
+    /*
+      Direct amounts posted only to the individual account.
+    */
+
+    old_debit,
+    old_credit,
+    old_final_balance,
+
+    /*
+      Rolled-up amounts containing the account and all descendants.
+    */
+
+    debit,
+    credit,
+    final_balance
+FROM summery
+
+/*
+  Remove accounts where all rolled-up amounts are zero.
+*/
+
+WHERE debit <> 0 OR credit <> 0 OR final_balance <> 0
+
+/*
+  Display accounts in hierarchy-path order.
+*/
+
+ORDER BY path;
+```
+
+---
+
+# Code 3: balance_sheet - report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 3: BALANCE SHEET
+===============================================================================
+
+Purpose:
+- Displays asset, liability and equity accounts.
+- Uses rolled-up balances from summery.
+- Adds a Balance Sheet Check row.
+
+Balance Sheet Check:
+Assets - Liabilities - Equity
+
+Important:
+- The calculation uses sorting = 1.
+- Root accounts already include all descendant balances.
+- Using every hierarchy row would double-count parent and child balances.
+
+Required:
+- Paste this CTE and final SELECT after Code 1.
+===============================================================================
+*/
+
+balance_sheet as (
+    /*
+      Select Balance Sheet account types from the master report.
+
+      Included account types:
+      - asset
+      - liability
+      - equity
+    */
+
+    SELECT
+            account_type,
+            account_category,
+            account_code,
+            sorting,
+            account_name,
+            account_sub1,
+            path,
+            debit,
+            credit,
+            final_balance
+        FROM summery
+        WHERE account_type IN ('asset', 'liability', 'equity')
+
+
+        UNION ALL
+
+
+        /*
+          Add one calculated report-total row.
+
+          account_type:
+          TOTAL
+
+          account_name:
+          Balance Sheet Check
+
+          Calculation:
+          Assets - Liabilities - Equity
+
+          FILTER and sorting = 1 ensure that only root-level rolled-up
+          balances are used.
+        */
+
+        SELECT
+            'TOTAL'::varchar AS account_type,
+            NULL::varchar AS account_category,
+            NULL::bigint AS account_code,
+            0 AS sorting,
+            'Balance Sheet Check'::varchar AS account_name,
+            NULL::varchar AS account_sub1,
+            NULL::text AS path,
+            NULL::double precision AS debit,
+            NULL::double precision AS credit,
+            COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'asset' AND sorting = 1), 0)
+            - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'liability' AND sorting = 1), 0)
+            - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'equity' AND sorting = 1), 0)
+            AS final_balance
+        FROM summery
+)
+
+
+/*
+  Return the final Balance Sheet report.
+*/
+
+SELECT
+    account_type,
+    account_category,
+    account_code,
+    account_name,
+    path,
+    debit,
+    credit,
+    final_balance
+FROM balance_sheet
+
+/*
+  Always retain the TOTAL row.
+
+  For normal account rows, remove rows where debit, credit and final balance
+  are all zero.
+*/
+
+WHERE account_type = 'TOTAL'
+   OR debit <> 0
+   OR credit <> 0
+   OR final_balance <> 0
+
+/*
+  Sort the report by account type and hierarchy path.
+*/
+
+ORDER BY
+    account_type,
+    path;
+```
+
+---
+
+# Code 4: Income_statement - report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 4: INCOME STATEMENT
+===============================================================================
+
+Purpose:
+- Displays income and expense accounts.
+- Uses rolled-up balances from summery.
+- Adds a Net Income row.
+
+Net Income:
+Income - Expense
+
+Important:
+- The calculation uses sorting = 1.
+- Root rows contain all descendant balances.
+- This avoids double-counting hierarchy levels.
+
+Required:
+- Paste this CTE and final SELECT after Code 1.
+===============================================================================
+*/
+
+income_statement AS (
+    /*
+      Select Income Statement account types.
+
+      Included account types:
+      - income
+      - expense
+    */
+
+    SELECT
+        account_type,
+        account_category,
+        account_code,
+        sorting,
+        account_name,
+        account_sub1,
+        path,
+        debit,
+        credit,
+        final_balance
+    FROM summery
+    WHERE account_type IN ('income', 'expense')
+
+
+    UNION ALL
+
+
+    /*
+      Add the Net Income row.
+
+      Net Income calculation:
+      Total root-level income
+      minus
+      Total root-level expense
+    */
+
+    SELECT
+        'TOTAL'::varchar AS account_type,
+        NULL::varchar AS account_category,
+        NULL::bigint AS account_code,
+        0 AS sorting,
+        'Net Income'::varchar AS account_name,
+        NULL::varchar AS account_sub1,
+        NULL::text AS path,
+        NULL::double precision AS debit,
+        NULL::double precision AS credit,
+        COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'income' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'expense' AND sorting = 1), 0)
+        AS final_balance
+    FROM summery
+)
+
+
+/*
+  Return the final Income Statement report.
+*/
+
+SELECT
+    account_type,
+    account_category,
+    account_code,
+    account_name,
+    path,
+    debit,
+    credit,
+    final_balance
+FROM income_statement
+
+/*
+  Always retain the TOTAL row.
+
+  Remove normal account rows where debit, credit and final balance are zero.
+*/
+
+WHERE account_type = 'TOTAL'
+   OR debit <> 0
+   OR credit <> 0
+   OR final_balance <> 0
+
+/*
+  Sort the report by account type and hierarchy path.
+*/
+
+ORDER BY account_type, path;
+```
+
+---
+
+# Code 5: trail_balance - report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 5: TRAIL BALANCE
+===============================================================================
+
+Purpose:
+- Displays debit, credit and final balance for all non-zero accounts.
+- Uses the rolled-up hierarchy balances from summery.
+- Includes each account's readable hierarchy path.
+
+Important:
+- The report name and original spelling "trail_balance" have been preserved.
+- debit, credit and final_balance contain the current account and descendants.
+
+Required:
+- Paste this SELECT after Code 1.
+===============================================================================
+*/
+
+SELECT
+    account_type,
+    account_category,
+    account_code,
+    account_name,
+    path,
+
+    /*
+      Rolled-up debit, credit and final balance.
+    */
+
+    debit,
+    credit,
+    final_balance
+FROM summery
+
+/*
+  Remove accounts where every reported amount is zero.
+*/
+
+WHERE debit <> 0
+   OR credit <> 0
+   OR final_balance <> 0
+
+/*
+  Display accounts in hierarchy-path order.
+*/
+
+ORDER BY path;
+```
+
+---
+
+# Code 6: RECONCILIATION - report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 6: RECONCILIATION
+===============================================================================
+
+Purpose:
+- Produces three financial calculation checks.
+- Uses root-level rolled-up balances from summery.
+
+Calculations:
+1. Income Statement = Income - Expense
+2. Balance Sheet = Asset - Liability - Equity
+3. Asset - Liability - Equity - Income + Expense = 0
+
+Important:
+- sorting = 1 restricts calculations to root accounts.
+- Root accounts already contain all descendant balances.
+- This prevents double-counting across hierarchy levels.
+
+Required:
+- Paste this CTE and final SELECT after Code 1.
+===============================================================================
+*/
+
+reconciliation AS (
+    /*
+      Calculation 1:
+      Income Statement result.
+
+      Formula:
+      Income - Expense
+    */
+
+    SELECT
+        'Income Statement = Income - Expense'::varchar AS calculation,
+        COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'income' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'expense' AND sorting = 1), 0)
+        AS result
+    FROM summery
+
+
+    UNION ALL
+
+
+    /*
+      Calculation 2:
+      Balance Sheet result.
+
+      Formula:
+      Asset - Liability - Equity
+    */
+
+    SELECT
+        'Balance Sheet = Asset - Liability - Equity'::varchar,
+        COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'asset' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'liability' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'equity' AND sorting = 1), 0)
+    FROM summery
+
+
+    UNION ALL
+
+
+    /*
+      Calculation 3:
+      Complete accounting-equation reconciliation.
+
+      Formula:
+      Asset - Liability - Equity - Income + Expense
+
+      Expected result:
+      0
+    */
+
+    SELECT
+        'Asset - Liability - Equity - Income + Expense = 0'::varchar,
+        COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'asset' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'liability' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'equity' AND sorting = 1), 0)
+        - COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'income' AND sorting = 1), 0)
+        + COALESCE(SUM(final_balance) FILTER (WHERE account_type = 'expense' AND sorting = 1), 0)
+    FROM summery
+)
+
+
+/*
+  Return all reconciliation calculations.
+*/
+
+SELECT * FROM reconciliation;
+```
+
+---
+
+# Code 7: full_financial_statement - report (Master code + select query)
+
+```sql
+/*
+===============================================================================
+CODE 7: FULL FINANCIAL STATEMENT
+===============================================================================
+
+Purpose:
+- Displays every non-zero account from all account types.
+- Includes assets, liabilities, equity, income and expenses.
+- Shows each account's hierarchy path.
+- Uses rolled-up balances from summery.
+
+Required:
+- Paste this SELECT after Code 1.
+===============================================================================
+*/
+
+SELECT
+    account_type,
+    account_category,
+    account_code,
+    account_name,
+    path,
+
+    /*
+      Rolled-up debit, credit and final balance.
+    */
+
+    debit,
+    credit,
+    final_balance
+FROM summery
+
+/*
+  Remove accounts where all reported amounts are zero.
+*/
+
+WHERE debit <> 0 OR credit <> 0 OR final_balance <> 0
+
+/*
+  Group the report by account type and then hierarchy path.
+*/
+
+ORDER BY account_type, path;
+```
+
+
 ---
 
 *Built by Jewel (Yaqin) — MSc Computer Science, Comilla University*
