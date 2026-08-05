@@ -1,0 +1,413 @@
+ Below is the complete project report as a single document. Copy and paste the entire block directly into your Word file or Markdown editor.
+
+---
+
+# PROJECT REPORT
+
+## **ACCSOFT — A SQL-Based Double-Entry Accounting System**
+
+**Submitted by:** Jewel (Yaqin)  
+**Program:** Master of Science in Computer Science  
+**Institution:** Comilla University  
+**Session:** 2025–2026  
+**Live Application:** https://accsoft.streamlit.app  
+**Source Code:** https://github.com/jewel0606/accsoft  
+
+---
+
+## ABSTRACT
+
+This project presents **accsoft**, a double-entry accounting system built primarily inside a PostgreSQL database. The system stores all accounting data in Supabase PostgreSQL and calculates every financial report using recursive SQL common table expressions (CTEs), standard aggregations, and database views. A lightweight Python frontend built with Streamlit connects to Supabase, retrieves live report data, and displays it in the browser. The application is hosted online at no cost using Streamlit Community Cloud and GitHub. The architecture demonstrates that complete accounting logic — including multi-level account hierarchies, trial balance, income statement, balance sheet, reconciliation, cash flow, general ledger, accounts receivable aging, accounts payable aging, vendor statements, and customer statements — can be implemented almost entirely in SQL, with the frontend acting only as a display layer. This approach aligns with the project goal of maximizing SQL expertise while minimizing frontend complexity.
+
+---
+
+## TABLE OF CONTENTS
+
+1. Introduction
+2. Problem Statement
+3. Objectives
+4. Scope and Limitations
+5. System Architecture and Technology Stack
+6. Database Design
+7. SQL Implementation and Accounting Logic
+8. Frontend Implementation
+9. Security Configuration
+10. Reports and Functionalities
+11. Deployment Process
+12. Future Improvements
+13. Conclusion
+14. References
+15. Appendices
+
+---
+
+## 1. INTRODUCTION
+
+### 1.1 Background
+
+Modern small-business accounting software such as Xero and QuickBooks provides rich functionality but requires significant infrastructure and licensing costs. For academic purposes, a simplified yet functionally complete accounting system can demonstrate core computer science competencies — database design, recursive query optimization, cloud deployment, and web application development — without requiring expensive platforms or complex frontend frameworks.
+
+The author has professional experience in accounting software and strong expertise in SQL. This project leverages that strength by placing the majority of business logic inside the database layer.
+
+### 1.2 Project Overview
+
+Accsoft is a web-based double-entry accounting system. Data is entered into Supabase PostgreSQL tables. Financial reports are generated dynamically through SQL views. A Streamlit application queries these views and presents live results. The entire stack operates on free-tier cloud services.
+
+---
+
+## 2. PROBLEM STATEMENT
+
+Traditional accounting software often buries business logic inside application code, making it difficult to audit or modify. Additionally, building a full-stack application typically requires learning HTML, CSS, JavaScript, and a backend framework — a significant time investment for a student whose strength lies in SQL and database design.
+
+The problem this project solves is:
+
+> How can a complete, multi-user, online double-entry accounting system be built with minimal new technology learning, zero cost, and maximum use of SQL?
+
+---
+
+## 3. OBJECTIVES
+
+1. To design a normalized PostgreSQL database that supports double-entry bookkeeping.
+2. To implement recursive SQL queries that handle unlimited account hierarchy levels.
+3. To generate all standard financial reports using SQL views.
+4. To build a minimal Python frontend that displays live data without performing calculations.
+5. To deploy the system online using only free-tier services.
+6. To produce a working demonstration suitable for MSc assessment.
+
+---
+
+## 4. SCOPE AND LIMITATIONS
+
+### 4.1 Scope
+
+- Multi-level chart of accounts with parent-child relationships.
+- Journal entry posting with debit-credit validation.
+- Real-time financial reports: Trial Balance, Income Statement, Balance Sheet, Reconciliation, Full Financial Statement, Cash Flow, General Ledger, and Chart of Accounts.
+- Accounts Receivable reports: Customer Ledger, Outstanding Invoices, Aged Receivables, Customer Statement.
+- Accounts Payable reports: Vendor Ledger, Purchase Summary, Bills to Pay, Aged Payables, Vendor Statement.
+- Online deployment with public URL.
+
+### 4.2 Limitations
+
+- Data entry is currently performed directly in Supabase Table Editor or via SQL INSERT statements; input forms are planned for future work.
+- User authentication and role-based access control are not yet implemented.
+- Report exports to Excel or PDF are not yet implemented.
+- The system is a demonstration model; it has not been load-tested for enterprise-scale transaction volumes.
+
+---
+
+## 5. SYSTEM ARCHITECTURE AND TECHNOLOGY STACK
+
+### 5.1 Architecture Diagram
+
+```
+Accounting data entered
+        ↓
+Supabase PostgreSQL tables
+        ↓
+Recursive SQL account hierarchy
+        ↓
+SQL financial report views
+        ↓
+Supabase Python client
+        ↓
+Streamlit report interface
+        ↓
+GitHub and Streamlit Cloud deployment
+```
+
+### 5.2 Technology Stack
+
+| Layer | Tool | Purpose |
+|---|---|---|
+| Database | Supabase PostgreSQL | Stores tables, views, and all accounting data |
+| Accounting Logic | SQL (recursive CTEs, views) | Calculates balances, hierarchies, and reports |
+| Data Processing | pandas | Converts query results into tabular format |
+| Frontend | Streamlit (Python) | Displays reports in the browser |
+| Code Storage | GitHub | Version control and CI/CD source |
+| Hosting | Streamlit Community Cloud | Free online application hosting |
+
+---
+
+## 6. DATABASE DESIGN
+
+### 6.1 Table Creation Order
+
+Foreign key dependencies require tables to be created in the following order:
+
+1. currency
+2. chart_of_accounts
+3. contact
+4. department
+5. location
+6. item
+7. budget
+8. user
+9. jnl
+
+### 6.2 Key Tables
+
+**chart_of_accounts** stores the account master data. Each account has a unique `account_code`, an `account_name`, and an optional `account_sub1` field that contains the `account_name` of its immediate parent. This self-referencing structure enables recursive hierarchy traversal.
+
+**jnl** is the journal table. It stores every transaction line. A complete transaction consists of at least one debit line and one credit line sharing the same `transaction_id`. Columns include `transaction_date`, `account_code`, `dc` (debit or credit), `amount`, `contact_id`, `transaction_type`, `status` (draft, post, void), `due_date`, `payment_transaction_id`, `description`, and `memo`.
+
+**contact** stores customer and vendor information.
+
+### 6.3 Double-Entry Rules
+
+- Every transaction must have total debits equal to total credits.
+- Asset and Expense accounts increase with debit and decrease with credit.
+- Liability, Equity, and Income accounts increase with credit and decrease with debit.
+- The accounting equation is: Assets − Liabilities − Equity − Income + Expense = 0.
+
+---
+
+## 7. SQL IMPLEMENTATION AND ACCOUNTING LOGIC
+
+### 7.1 Recursive Account Hierarchy
+
+The account hierarchy is built using a recursive CTE that starts from root accounts (where `account_sub1 IS NULL`) and walks down to children and grandchildren. The recursion produces:
+
+- `sorting` — the depth level (1 = root, 2 = child, 3 = grandchild).
+- `path` — a human-readable breadcrumb such as `Assets > Current Assets > Cash`.
+- `path_codes` — an array of account codes representing the ancestry, e.g., `{1000, 1100, 1110}`.
+
+A cycle guard (`AND NOT (coa.account_code = ANY(hh.path_codes))`) prevents infinite recursion in case of circular parent references.
+
+### 7.2 Balance Calculation
+
+A separate CTE aggregates the journal table to calculate `total_debit`, `total_credit`, and `final_balance` per account. The balance direction depends on `account_type`:
+
+- Asset and Expense: `final_balance = debit − credit`
+- Liability, Equity, and Income: `final_balance = credit − debit`
+
+### 7.3 Roll-Up Logic
+
+Parent accounts must display their own direct balance plus the rolled-up balances of all descendants. This is achieved by joining the hierarchy CTE with the balance CTE and using window functions or recursive accumulation. Report totals are taken only from `sorting = 1` (root) rows to avoid double-counting.
+
+### 7.4 View Creation
+
+All reports are implemented as PostgreSQL views. Views were chosen over materialized views because the data changes frequently and the reports must always reflect the latest journal entries. The main views are:
+
+- `view_account_summary` — direct and rolled-up balances for every account.
+- `view_trial_balance` — debit, credit, and final balance by account.
+- `view_income_statement` — income, expenses, and net income.
+- `view_balance_sheet` — assets, liabilities, equity, and balance-sheet check.
+- `view_reconciliation` — accounting equation validation.
+- `view_full_financial_statement` — all account types and hierarchy levels combined.
+- `view_chart_of_accounts` — complete account list.
+- `view_journal_register` — every posted journal line.
+
+These views are created with `security_invoker = true` so that Row Level Security policies on the underlying tables are respected.
+
+### 7.5 Additional Report Queries (Codes 8–22)
+
+Beyond the core views, the system includes specialized SQL queries for operational reporting:
+
+**Code 8 — Cash Flow Statement:** Identifies cash and bank accounts using `account_pattern IN ('cash', 'bank')`. Classifies transactions into Operating, Investing, and Financing activities. Calculates opening cash, net movement, and closing cash.
+
+**Code 9 — Journal Register:** Displays every posted journal line within a selected period with separate debit and credit columns.
+
+**Code 10 — General Ledger:** Produces a detailed ledger for a selected account code, including opening balance, individual debit and credit lines, running balance, and a final total row.
+
+**Code 11 — Vendor Report Master:** Creates reusable datasets for Accounts Payable (account code 106). Includes vendor ledger and purchase summary.
+
+**Code 12 — Vendor Ledger:** Detailed payable transaction history per vendor with running balance.
+
+**Code 13 — Purchase Summary:** Aggregates bills, supplier credits, payments, and outstanding payable per vendor.
+
+**Code 14 — Invoice Report Master:** Creates reusable datasets for Accounts Receivable (account code 107). Includes customer ledger, outstanding invoices, aged receivables, and customer statement.
+
+**Code 15 — Customer Ledger:** Detailed receivable transaction history per customer with running balance.
+
+**Code 16 — Outstanding Invoices Summary:** Lists unpaid invoices with aging buckets: Current, 1–30 days, 31–60 days, 61–90 days, and 90+ days overdue.
+
+**Code 17 — Aged Receivables by Customer:** Summarizes outstanding amounts per customer into aging buckets.
+
+**Code 18 — Customer Statement:** Clean list of outstanding invoice documents per customer.
+
+**Code 19 — Bill Report Master:** Creates reusable datasets for Accounts Payable aging and vendor statements.
+
+**Code 20 — Bills to Pay Aging:** Lists unpaid bills with aging buckets.
+
+**Code 21 — Aged Payables Total:** Summarizes outstanding payable amounts per vendor into aging buckets.
+
+**Code 22 — Vendor Statement:** Clean list of outstanding bill documents per vendor.
+
+---
+
+## 8. FRONTEND IMPLEMENTATION
+
+### 8.1 Streamlit Application Structure
+
+The application consists of four files stored in GitHub:
+
+```
+accsoft/
+├── README.md
+├── requirements.txt
+├── db.py
+├── app.py
+└── database.sql
+```
+
+**requirements.txt** lists three dependencies: `streamlit`, `supabase`, and `pandas`.
+
+**db.py** establishes the Supabase connection using credentials stored in Streamlit Secrets (`st.secrets["SUPABASE_URL"]` and `st.secrets["SUPABASE_KEY"]`). The Supabase anon key is never committed to the public repository.
+
+**app.py** defines a single reusable function `show_report(view_name)` that queries a Supabase view, converts the result into a pandas DataFrame, and displays it using `st.dataframe()`. Eight tabs are created with `st.tabs()`, each containing a button that triggers the corresponding view.
+
+### 8.2 Why Streamlit
+
+Streamlit was chosen because it requires no HTML, CSS, or JavaScript knowledge. The entire frontend is written in Python using approximately 15–20 lines of code per report tab. This satisfies the project constraint of minimizing time spent learning new technologies.
+
+---
+
+## 9. SECURITY CONFIGURATION
+
+Row Level Security (RLS) is enabled on the main tables (`jnl` and `chart_of_accounts`). Read-only policies allow both `anon` and `authenticated` roles to select data. Views do not have RLS directly; instead, `security_invoker = true` is set on each view so that the underlying table policies are enforced when the view is queried. The `service_role` key is never used in the frontend or public code.
+
+---
+
+## 10. REPORTS AND FUNCTIONALITIES
+
+The live application at https://accsoft.streamlit.app contains the following tabs:
+
+| Tab | Supabase View / Query | Description |
+|---|---|---|
+| Account Summary | `view_account_summary` | Direct and rolled-up balances per account |
+| Balance Sheet | `view_balance_sheet` | Assets, liabilities, equity, and validation check |
+| Trial Balance | `view_trial_balance` | Debit, credit, and final balance by account |
+| Reconciliation | `view_reconciliation` | Accounting equation and cross-report checks |
+| Income Statement | `view_income_statement` | Revenue, expenses, and net income |
+| Full Financial Statement | `view_full_financial_statement` | All account types with hierarchy |
+| Chart of Accounts | `view_chart_of_accounts` | Complete account structure |
+| Journal Register | `view_journal_register` | Every posted journal line |
+
+Additional reports available as SQL queries (Codes 8–22) include Cash Flow, General Ledger, Vendor Ledger, Purchase Summary, Customer Ledger, Outstanding Invoices, Aged Receivables, Customer Statement, Bills to Pay, Aged Payables, and Vendor Statement.
+
+All reports are dynamic. When a new journal entry is posted, the views automatically reflect the updated data on the next query.
+
+---
+
+## 11. DEPLOYMENT PROCESS
+
+1. **Supabase:** Create project `accsoft`, build tables in dependency order, create views, enable RLS, and grant SELECT permissions to `anon` and `authenticated` roles.
+2. **GitHub:** Create public repository `jewel0606/accsoft`, commit `README.md`, `requirements.txt`, `db.py`, and `app.py`.
+3. **Streamlit Secrets:** Configure `SUPABASE_URL` and `SUPABASE_KEY` in the Streamlit Cloud dashboard.
+4. **Streamlit Cloud:** Connect the GitHub repository, set main file to `app.py`, choose URL slug `accsoft`, and deploy.
+5. **Result:** Public URL `https://accsoft.streamlit.app` is live and loads reports directly from Supabase.
+
+---
+
+## 12. FUTURE IMPROVEMENTS
+
+Planned enhancements include:
+
+- User login and authentication
+- Journal entry input forms inside Streamlit
+- Invoice and bill entry forms
+- Date range and account filters on reports
+- Export to Excel and PDF
+- Dashboard with summary charts
+- Budget versus actual comparison
+- Department and location reporting
+- Automated accounting period closing
+- Database audit logging
+- Role-based access control
+
+---
+
+## 13. CONCLUSION
+
+This project demonstrates that a functional double-entry accounting system can be built with SQL as the primary engineering tool. By placing recursive hierarchy logic, balance roll-ups, and financial report calculations inside PostgreSQL views, the system achieves clean separation of concerns: the database handles all accounting rules, while the Python frontend merely displays results. The deployment uses entirely free services, making it accessible for academic demonstration and small-business prototyping. The system successfully produces a Trial Balance, Income Statement, Balance Sheet, Reconciliation, Cash Flow, General Ledger, and full Accounts Receivable / Accounts Payable aging reports from live data.
+
+---
+
+## 14. REFERENCES
+
+1. PostgreSQL Documentation — Recursive Queries. https://www.postgresql.org/docs/current/queries-with.html
+2. Supabase Documentation. https://supabase.com/docs
+3. Streamlit Documentation. https://docs.streamlit.io
+4. Weygandt, J. J., Kimmel, P. D., & Kieso, D. E. *Accounting Principles*. Wiley.
+5. Xero Accounting Software — Feature Reference. https://www.xero.com
+
+---
+
+## 15. APPENDICES
+
+### Appendix A: Master Account Hierarchy SQL Pattern
+
+```sql
+WITH RECURSIVE hh AS (
+    SELECT
+        account_category,
+        account_type,
+        account_code,
+        1 AS sorting,
+        account_name,
+        account_sub1,
+        account_name::text AS path,
+        ARRAY[account_code] AS path_codes
+    FROM chart_of_accounts
+    WHERE account_sub1 IS NULL
+
+    UNION ALL
+
+    SELECT
+        coa.account_category,
+        coa.account_type,
+        coa.account_code,
+        hh.sorting + 1,
+        coa.account_name,
+        coa.account_sub1,
+        CONCAT(hh.path, ' > ', coa.account_name) AS path,
+        hh.path_codes || coa.account_code
+    FROM chart_of_accounts AS coa
+    JOIN hh ON coa.account_sub1 = hh.account_name
+    AND NOT (coa.account_code = ANY(hh.path_codes))
+)
+SELECT * FROM hh ORDER BY path;
+```
+
+### Appendix B: Core Report Views
+
+The views `view_account_summary`, `view_balance_sheet`, `view_trial_balance`, `view_reconciliation`, `view_income_statement`, `view_full_financial_statement`, `view_chart_of_accounts`, and `view_journal_register` are created in Supabase SQL Editor. Each view queries the recursive hierarchy and journal aggregations described in Section 7.
+
+### Appendix C: Additional Report Queries (Codes 8–22)
+
+**Code 8 — Cash Flow Statement:** Uses `report_params` CTE for date range, identifies cash/bank accounts via `account_pattern`, classifies transactions into Operating, Investing, and Financing, and reconciles opening balance + net movement to closing balance.
+
+**Code 9 — Journal Register:** Selects all posted lines within a date range with separate debit and credit columns.
+
+**Code 10 — General Ledger:** Takes a `selected_account_code` parameter, calculates opening balance before the period, lists all period activity with running balance, and appends a total row.
+
+**Code 11 — Vendor Report Master:** Uses account code 106 (Accounts Payable), filters posted transactions, assigns `document_id` based on `transaction_type` or `payment_transaction_id`, and computes running balances and purchase summaries.
+
+**Code 12 — Vendor Ledger:** Outputs detailed payable lines from the Vendor Report Master.
+
+**Code 13 — Purchase Summary:** Aggregates bills, credits, payments, and outstanding payable per vendor.
+
+**Code 14 — Invoice Report Master:** Uses account code 107 (Accounts Receivable), links payments to original invoices via `payment_transaction_id`, calculates invoice balances, aging days, and produces datasets for customer ledger, outstanding invoices, aged receivables, and customer statements.
+
+**Code 15 — Customer Ledger:** Outputs detailed receivable lines with running balance.
+
+**Code 16 — Outstanding Invoices Summary:** Lists unpaid invoices with aging buckets (Current, 1–30, 31–60, 61–90, 90+).
+
+**Code 17 — Aged Receivables by Customer:** Summarizes aging buckets per customer.
+
+**Code 18 — Customer Statement:** Clean outstanding invoice list per customer.
+
+**Code 19 — Bill Report Master:** Mirrors the Invoice Report Master for Accounts Payable, producing datasets for bills to pay, aged payables, and vendor statements.
+
+**Code 20 — Bills to Pay Aging:** Unpaid bills with aging buckets.
+
+**Code 21 — Aged Payables Total:** Summarizes aging buckets per vendor.
+
+**Code 22 — Vendor Statement:** Clean outstanding bill list per vendor.
+
+---
+
+*End of Report*
+
+---
