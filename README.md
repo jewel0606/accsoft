@@ -6,6 +6,7 @@
 
 The system uses:
 
+
 - **Supabase PostgreSQL** for accounting data, tables, views, and report calculations
 - **SQL** for account hierarchy, debit and credit aggregation, financial statements, and reconciliation
 - **Python and Streamlit** for the read-only web interface
