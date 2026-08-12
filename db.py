@@ -4,3 +4,4 @@ SUPABASE_URL = "https://phuvxkazjkqetquaouvf.supabase.co"
 SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBodXZ4a2F6amtxZXRxdWFvdXZmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTExMjk4NjUsImV4cCI6MjA2NjcwNTg2NX0.nyOYyrQWOqQvkyqhFHPTLx8MR0JumHG7iPtVpveyyNc"
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
