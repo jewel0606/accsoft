@@ -3,7 +3,6 @@ import streamlit as st
 
 from db import supabase
 
-
 st.set_page_config(
     page_title="accsoft — Accounting System",
     layout="wide",
